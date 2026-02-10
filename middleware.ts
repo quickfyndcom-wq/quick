@@ -18,6 +18,7 @@ const publicEndpoints = [
   '/api/store/home-menu-categories', // Allow GET requests to view home menu categories (public)
   '/api/store/navbar-menu', // Allow GET requests to view navbar menu (public)
   '/api/store/download-image', // Allow authenticated downloads (checks token in route)
+  '/api/store/sitemap-settings/public', // Allow GET requests to view sitemap settings (public)
 ];
 
 

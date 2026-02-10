@@ -44,7 +44,7 @@ export default function NavbarMenuBar() {
 
   return (
     <div className="w-full bg-white text-gray-800 border-b border-gray-200">
-      <div className="max-w-[1250px] mx-auto px-4 py-2.5">
+      <div className="max-w-[1240px] mx-auto px-4 py-2.5">
         <div
           className="flex items-center justify-start gap-3 overflow-x-auto whitespace-nowrap"
           style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}

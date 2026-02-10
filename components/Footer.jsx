@@ -62,7 +62,7 @@ const Footer = () => {
 
     return (
         <footer className="bg-black text-slate-200 border-t border-slate-800 pt-0 lg:pt-12">
-            <div className="max-w-[1340px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Main Footer Content */}
                 <div className="py-2 grid grid-cols-2 gap-2 md:grid-cols-2 lg:grid-cols-6 md:gap-4 lg:gap-6">
                     {/* Brand Section - Takes 2 columns on large screens */}

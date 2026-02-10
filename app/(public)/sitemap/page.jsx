@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import axios from 'axios';
-import { FiShoppingBag, FiUsers, FiFileText, FiInfo, FiTruck, FiStar, FiPackage, FiGrid, FiTag } from 'react-icons/fi';
 
 export default function SitemapPage() {
   const [sitemapCategories, setSitemapCategories] = useState([]);
@@ -37,7 +36,8 @@ export default function SitemapPage() {
         setSitemapCategories(defaultCategories);
       }
     } catch (error) {
-      console.error('Error fetching sitemap categories:', error);
+      console.log('Using default categories (API unavailable):', error.message);
+      // Always fallback to default categories if API fails
       setSitemapCategories(defaultCategories);
     } finally {
       setLoading(false);
@@ -46,56 +46,91 @@ export default function SitemapPage() {
 
   const sitemapSections = [
     {
-      title: 'Shop',
-      icon: FiShoppingBag,
+      title: '🛍️ Shop & Browse',
       links: [
-        { text: 'All Products', path: '/products' },
-        { text: 'Fast Delivery', path: '/fast-delivery' },
-        { text: 'Top Selling', path: '/top-selling' },
-        { text: 'New Arrivals', path: '/new' },
-        { text: 'Categories', path: '/categories' },
-        { text: 'Best Selling', path: '/best-selling' },
+        { text: 'Home', path: '/', description: 'Main homepage' },
+        { text: 'All Products', path: '/products', description: 'Browse all products' },
+        { text: 'Shop', path: '/shop', description: 'Shop with filters' },
+        { text: 'Categories', path: '/categories', description: 'All categories' },
+        { text: 'Fast Delivery', path: '/fast-delivery', description: 'Quick shipping items' },
+        { text: 'Top Selling', path: '/top-selling', description: 'Best selling products' },
+        { text: 'New Arrivals', path: '/new', description: 'Latest products' },
+        { text: 'Trending Now', path: '/trending-now', description: 'Trending items' },
+        { text: 'Best Sellers', path: '/best-sellers', description: 'Customer favorites' },
+        { text: '5-Star Rated', path: '/5-star-rated', description: 'Highly rated products' },
+        { text: 'Deals', path: '/deals', description: 'Special deals' },
+        { text: 'Special Offers', path: '/offers', description: 'Products with 60%+ off' },
+        { text: 'Clearance Sale', path: '/clearance-sale', description: 'Clearance items' },
       ]
     },
     {
-      title: 'Categories',
-      icon: FiTag,
-      links: sitemapCategories.length > 0 
-        ? sitemapCategories.map(cat => ({ text: cat.text, path: cat.url }))
-        : defaultCategories.map(cat => ({ text: cat.text, path: cat.path }))
-    },
-    {
-      title: 'Customer Care',
-      icon: FiUsers,
+      title: '💰 Budget Shopping',
       links: [
-        { text: 'Track Order', path: '/track-order' },
-        { text: 'My Orders', path: '/orders' },
-        { text: 'My Profile', path: '/profile' },
-        { text: 'My Wishlist', path: '/wishlist' },
-        { text: 'FAQ', path: '/faq' },
-        { text: 'Support', path: '/support' },
-        { text: 'Help Center', path: '/help' },
+        { text: 'Under ₹149', path: '/under-149', description: 'Products under 149' },
+        { text: 'Under ₹499', path: '/under-499', description: 'Products under 499' },
       ]
     },
     {
-      title: 'Legal & Information',
-      icon: FiFileText,
+      title: '👤 Account & Orders',
       links: [
-        { text: 'Cancellation & Refunds', path: '/cancellation-and-refunds' },
-        { text: 'Terms and Conditions', path: '/terms-and-conditions' },
-        { text: 'Shipping Policy', path: '/shipping-policy' },
-        { text: 'Privacy Policy', path: '/privacy-policy' },
-        { text: 'Contact Us', path: '/contact-us' },
+        { text: 'My Profile', path: '/profile', description: 'User profile settings' },
+        { text: 'My Orders', path: '/orders', description: 'View all orders' },
+        { text: 'Track Order', path: '/track-order', description: 'Track shipment' },
+        { text: 'My Wishlist', path: '/wishlist', description: 'Saved items' },
+        { text: 'Shopping Cart', path: '/cart', description: 'Shopping cart' },
+        { text: 'Sign In', path: '/sign-in', description: 'Login to account' },
+        { text: 'Sign Up', path: '/sign-up', description: 'Create new account' },
+        { text: 'Dashboard', path: '/dashboard', description: 'User dashboard' },
+        { text: 'My Wallet', path: '/wallet', description: 'Wallet & balance' },
+        { text: 'Recently Viewed', path: '/recently-viewed', description: 'Browsing history' },
+        { text: 'Recommended', path: '/recommended', description: 'Personalized recommendations' },
       ]
     },
     {
-      title: 'About QuickFynd',
-      icon: FiInfo,
+      title: '📦 Checkout & Orders',
       links: [
-        { text: 'About Us', path: '/about' },
-        { text: 'Create Your Store', path: '/create-store' },
-        { text: 'Become a Seller', path: '/seller' },
-        { text: 'Careers', path: '/careers' },
+        { text: 'Checkout', path: '/checkout', description: 'Complete purchase' },
+        { text: 'Order Success', path: '/order-success', description: 'Order confirmation' },
+        { text: 'Order Failed', path: '/order-failed', description: 'Order help' },
+        { text: 'Return Request', path: '/return-request', description: 'Request return' },
+      ]
+    },
+    {
+      title: '🔍 Search & Discovery',
+      links: [
+        { text: 'Search Results', path: '/search-results', description: 'Product search' },
+      ]
+    },
+    {
+      title: '❓ Help & Support',
+      links: [
+        { text: 'FAQ', path: '/faq', description: 'Frequently asked questions' },
+        { text: 'Support', path: '/support', description: 'Customer support' },
+        { text: 'Help Center', path: '/help', description: 'Help & guides' },
+        { text: 'Contact Us', path: '/contact-us', description: 'Get in touch' },
+      ]
+    },
+    {
+      title: '📋 Policies & Legal',
+      links: [
+        { text: 'Terms & Conditions', path: '/terms-and-conditions', description: 'Terms of use' },
+        { text: 'Privacy Policy', path: '/privacy-policy', description: 'Privacy & data' },
+        { text: 'Shipping Policy', path: '/shipping-policy', description: 'Shipping details' },
+        { text: 'Return & Refund Policy', path: '/return-policy', description: 'Returns & refunds' },
+        { text: 'Cancellation Policy', path: '/cancellation-and-refunds', description: 'Cancel orders' },
+        { text: 'Cookie Policy', path: '/cookie-policy', description: 'Cookie information' },
+        { text: 'Warranty Policy', path: '/warranty-policy', description: 'Product warranty' },
+        { text: 'Refund Policy', path: '/refund-policy', description: 'Refund terms' },
+      ]
+    },
+    {
+      title: 'ℹ️ About & Partnership',
+      links: [
+        { text: 'About Us', path: '/about-us', description: 'Company information' },
+        { text: 'Create Your Store', path: '/create-store', description: 'Start selling' },
+        { text: 'Careers', path: '/careers', description: 'Join our team' },
+        { text: 'Pricing', path: '/pricing', description: 'Seller pricing' },
+        { text: 'Payment & Pricing', path: '/payment-and-pricing', description: 'Payment options' },
       ]
     },
   ];
@@ -104,9 +139,9 @@ export default function SitemapPage() {
     <div className="min-h-screen bg-gradient-to-b from-white to-slate-50">
       {/* Header Section */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-16 px-4">
-        <div className="max-w-[1450px] mx-auto">
+        <div className="max-w-[1280px] mx-auto">
           <div className="flex items-center gap-3 mb-4">
-            <FiGrid className="w-8 h-8" />
+            <span className="text-4xl">📋</span>
             <h1 className="text-4xl md:text-5xl font-bold">Sitemap</h1>
           </div>
           <p className="text-blue-100 text-lg max-w-2xl">
@@ -116,35 +151,40 @@ export default function SitemapPage() {
       </div>
 
       {/* Sitemap Content */}
-      <div className="max-w-[1450px] mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {sitemapSections.map((section, idx) => (
-            <div key={idx} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
-              {/* Section Header */}
-              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-200">
-                <div className="p-2 bg-blue-50 rounded-lg">
-                  <section.icon className="w-6 h-6 text-blue-600" />
-                </div>
-                <h2 className="text-xl font-bold text-slate-800">{section.title}</h2>
-              </div>
+      <div className="max-w-[1280px] mx-auto px-4 py-12">
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+            <p className="text-gray-500">Loading sitemap...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {sitemapSections.map((section, idx) => (
+              <div key={idx} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
+                {/* Section Header with Title Only */}
+                <h2 className="text-lg font-bold text-slate-800 mb-6 pb-4 border-b border-slate-200">{section.title}</h2>
 
-              {/* Links */}
-              <ul className="space-y-3">
-                {section.links.map((link, i) => (
-                  <li key={i}>
-                    <Link 
-                      href={link.path}
-                      className="text-slate-600 hover:text-blue-600 hover:translate-x-1 transition-all inline-flex items-center gap-2 group"
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-300 group-hover:bg-blue-600 transition-colors"></span>
-                      {link.text}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
+                {/* Links */}
+                <ul className="space-y-2">
+                  {section.links.filter(link => link && link.path).map((link, i) => (
+                    <li key={i} className="group">
+                      <Link 
+                        href={link.path || '#'}
+                        className="text-slate-700 hover:text-blue-600 transition-colors font-medium"
+                        title={link.description}
+                      >
+                        {link.text}
+                      </Link>
+                      {link.description && (
+                        <p className="text-slate-500 text-sm ml-1 group-hover:text-slate-600 transition-colors">{link.description}</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Additional Info Section */}
         <div className="mt-12 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-8 border border-blue-100">
