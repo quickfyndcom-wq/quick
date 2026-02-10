@@ -24,6 +24,7 @@ const updateOrderStatus = async (orderId, newStatus, getToken, fetchOrders) => {
 import { useAuth } from '@/lib/useAuth';
 export const dynamic = 'force-dynamic'
 import { useEffect, useState, useRef } from "react"
+import { useRouter } from "next/navigation"
 import Loading from "@/components/Loading"
 
 import axios from "axios"
@@ -58,9 +59,55 @@ export default function StoreOrders() {
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [rejectReason, setRejectReason] = useState('');
     const [rejectingReturnIndex, setRejectingReturnIndex] = useState(null);
+    const [ltlPickupData, setLtlPickupData] = useState({
+        client_warehouse: '',
+        pickup_date: '',
+        start_time: '',
+        expected_package_count: 1
+    });
+    const [ltlLabelSize, setLtlLabelSize] = useState('std');
+    const [ltlLoading, setLtlLoading] = useState(false);
+    const [awbManifestData, setAwbManifestData] = useState({
+        pickup_location_name: '',
+        payment_mode: 'cod',
+        cod_amount: 0,
+        weight: 1000,
+        dimensions: [{ box_count: 1, length_cm: 10, width_cm: 10, height_cm: 10 }],
+        dropoff_location: {}
+    });
+    const [generatingAwb, setGeneratingAwb] = useState(false);
     const refreshIntervalRef = useRef(null);
+    const router = useRouter();
 
     const { user, getToken, loading: authLoading } = useAuth();
+
+    const callCourierProxy = async (action, params, data) => {
+        setLtlLoading(true);
+        try {
+            const token = await getToken(true);
+            if (!token) {
+                toast.error('Authentication failed. Please sign in again.');
+                return;
+            }
+            const response = await axios.post('/api/store/courior/proxy', {
+                action,
+                params,
+                data
+            }, {
+                headers: { Authorization: `Bearer ${token}` },
+                timeout: 15000
+            });
+
+            toast.success('Courier action completed');
+            return response.data?.data;
+        } catch (error) {
+            console.error('[Courier action] error:', error);
+            toast.error(error?.response?.data?.error || 'Courier action failed');
+            return null;
+        } finally {
+            setLtlLoading(false);
+        }
+    };
 
     // Status options available (aligned with customer dashboard and courier states)
     const STATUS_OPTIONS = [
@@ -320,6 +367,16 @@ export default function StoreOrders() {
             trackingId: order.trackingId || '',
             trackingUrl: order.trackingUrl || '',
             courier: order.courier || ''
+        });
+        // Pre-fill AWB manifest data from order
+        const isCod = order.payment_method === 'cod' || order.paymentMethod === 'cod';
+        setAwbManifestData({
+            pickup_location_name: '',
+            payment_mode: isCod ? 'cod' : 'prepaid',
+            cod_amount: isCod ? order.total : 0,
+            weight: Math.max(1000, Math.ceil(order.total / 10)), // Estimate: 1kg min or 100g per ₹1
+            dimensions: [{ box_count: 1, length_cm: 30, width_cm: 20, height_cm: 15 }],
+            dropoff_location: order.shippingAddress || {}
         });
         setIsModalOpen(true);
     };
@@ -809,28 +866,35 @@ export default function StoreOrders() {
                                         <span className="text-sm">Print</span>
                                     </button>
                                     <button
-                                        onClick={() => downloadAwbBill({
-                                            awbNumber: selectedOrder.trackingId,
-                                            orderId: selectedOrder._id,
-                                            courier: selectedOrder.courier,
-                                            date: selectedOrder.createdAt,
-                                            senderName: process.env.NEXT_PUBLIC_INVOICE_COMPANY_NAME || 'Qui',
-                                            senderAddress: `${process.env.NEXT_PUBLIC_INVOICE_ADDRESS_LINE1 || ''}, ${process.env.NEXT_PUBLIC_INVOICE_ADDRESS_LINE2 || ''}`,
-                                            senderPhone: process.env.NEXT_PUBLIC_INVOICE_CONTACT || '',
-                                            receiverName: selectedOrder.shippingAddress?.name,
-                                            receiverAddress: `${selectedOrder.shippingAddress?.street}, ${selectedOrder.shippingAddress?.city}, ${selectedOrder.shippingAddress?.state}, ${selectedOrder.shippingAddress?.zip}, ${selectedOrder.shippingAddress?.country}`,
-                                            receiverPhone: (() => {
-                                                const primary = [selectedOrder.shippingAddress?.phoneCode, selectedOrder.shippingAddress?.phone].filter(Boolean).join(' ');
-                                                const alt = selectedOrder.shippingAddress?.alternatePhone
-                                                    ? [selectedOrder.shippingAddress?.alternatePhoneCode || selectedOrder.shippingAddress?.phoneCode, selectedOrder.shippingAddress.alternatePhone].filter(Boolean).join(' ')
-                                                    : '';
-                                                return alt ? `${primary} / ${alt}` : primary;
-                                            })(),
-                                            weight: selectedOrder.weight || '',
-                                            dimensions: selectedOrder.dimensions || '',
-                                            contents: selectedOrder.orderItems?.map(i => i.product?.name).join(', '),
-                                            pdfSize: 'a5' // Pass A5 size for AWB
-                                        })}
+                                        onClick={() => {
+                                            const awbNumber = selectedOrder.trackingId || trackingData.trackingId;
+                                            if (!awbNumber) {
+                                                toast.error('Generate or add AWB number first!');
+                                                return;
+                                            }
+                                            downloadAwbBill({
+                                                awbNumber: awbNumber,
+                                                orderId: selectedOrder._id,
+                                                courier: selectedOrder.courier || 'Delhivery',
+                                                date: selectedOrder.createdAt,
+                                                senderName: process.env.NEXT_PUBLIC_INVOICE_COMPANY_NAME || 'Qui',
+                                                senderAddress: `${process.env.NEXT_PUBLIC_INVOICE_ADDRESS_LINE1 || ''}, ${process.env.NEXT_PUBLIC_INVOICE_ADDRESS_LINE2 || ''}`,
+                                                senderPhone: process.env.NEXT_PUBLIC_INVOICE_CONTACT || '',
+                                                receiverName: selectedOrder.shippingAddress?.name,
+                                                receiverAddress: `${selectedOrder.shippingAddress?.street}, ${selectedOrder.shippingAddress?.city}, ${selectedOrder.shippingAddress?.state}, ${selectedOrder.shippingAddress?.zip}, ${selectedOrder.shippingAddress?.country}`,
+                                                receiverPhone: (() => {
+                                                    const primary = [selectedOrder.shippingAddress?.phoneCode, selectedOrder.shippingAddress?.phone].filter(Boolean).join(' ');
+                                                    const alt = selectedOrder.shippingAddress?.alternatePhone
+                                                        ? [selectedOrder.shippingAddress?.alternatePhoneCode || selectedOrder.shippingAddress?.phoneCode, selectedOrder.shippingAddress.alternatePhone].filter(Boolean).join(' ')
+                                                        : '';
+                                                    return alt ? `${primary} / ${alt}` : primary;
+                                                })(),
+                                                weight: selectedOrder.weight || '',
+                                                dimensions: selectedOrder.dimensions || '',
+                                                contents: selectedOrder.orderItems?.map(i => i.product?.name).join(', '),
+                                                pdfSize: 'a5' // Pass A5 size for AWB
+                                            });
+                                        }}
                                         className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-colors shadow backdrop-blur-sm"
                                         title="Download AWB Bill"
                                     >
@@ -1042,6 +1106,246 @@ export default function StoreOrders() {
                                         </button>
                                     </div>
                                 )}
+
+                                <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+                                    <p className="text-sm font-semibold text-slate-800 mb-3">Courier Actions (Delhivery LTL)</p>
+                                    <div className="space-y-3">
+                                        {/* Generate AWB Section */}
+                                        {!trackingData.trackingId && (
+                                            <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-300 rounded-lg p-4">
+                                                <p className="text-xs font-bold text-blue-800 mb-3">📦 Generate New AWB</p>
+                                                <div className="grid grid-cols-2 gap-3 mb-3">
+                                                    <div>
+                                                        <label className="block text-[10px] font-semibold text-slate-600 mb-1">Pickup Warehouse *</label>
+                                                        <input
+                                                            value={awbManifestData.pickup_location_name}
+                                                            onChange={(e) => setAwbManifestData(prev => ({ ...prev, pickup_location_name: e.target.value }))}
+                                                            className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-xs"
+                                                            placeholder="Enter registered warehouse name"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-semibold text-slate-600 mb-1">Payment Mode</label>
+                                                        <select
+                                                            value={awbManifestData.payment_mode}
+                                                            onChange={(e) => setAwbManifestData(prev => ({ ...prev, payment_mode: e.target.value }))}
+                                                            className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-xs"
+                                                        >
+                                                            <option value="cod">COD (Cash on Delivery)</option>
+                                                            <option value="prepaid">Prepaid</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-semibold text-slate-600 mb-1">COD Amount (₹)</label>
+                                                        <input
+                                                            value={awbManifestData.cod_amount}
+                                                            onChange={(e) => setAwbManifestData(prev => ({ ...prev, cod_amount: Number(e.target.value) }))}
+                                                            type="number"
+                                                            className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-xs"
+                                                            placeholder="Amount to collect"
+                                                            disabled={awbManifestData.payment_mode !== 'cod'}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-semibold text-slate-600 mb-1">Weight (grams)</label>
+                                                        <input
+                                                            value={awbManifestData.weight}
+                                                            onChange={(e) => setAwbManifestData(prev => ({ ...prev, weight: Number(e.target.value) }))}
+                                                            type="number"
+                                                            className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-xs"
+                                                            placeholder="Package weight"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={async () => {
+                                                        if (!awbManifestData.pickup_location_name) {
+                                                            toast.error('Enter warehouse name');
+                                                            return;
+                                                        }
+                                                        if (!selectedOrder.shippingAddress) {
+                                                            toast.error('No shipping address');
+                                                            return;
+                                                        }
+                                                        setGeneratingAwb(true);
+                                                        try {
+                                                            const manifestPayload = {
+                                                                pickup_location_name: awbManifestData.pickup_location_name,
+                                                                payment_mode: awbManifestData.payment_mode,
+                                                                cod_amount: awbManifestData.payment_mode === 'cod' ? awbManifestData.cod_amount : 0,
+                                                                weight: awbManifestData.weight,
+                                                                dropoff_location: JSON.stringify({
+                                                                    consignee_name: selectedOrder.shippingAddress.name || selectedOrder.guestName,
+                                                                    address: selectedOrder.shippingAddress.street || '',
+                                                                    city: selectedOrder.shippingAddress.city || '',
+                                                                    state: selectedOrder.shippingAddress.state || '',
+                                                                    zip: selectedOrder.shippingAddress.zip || selectedOrder.shippingAddress.pincode || '',
+                                                                    phone: selectedOrder.shippingAddress.phone || selectedOrder.guestPhone || '',
+                                                                    email: selectedOrder.shippingAddress.email || selectedOrder.guestEmail || ''
+                                                                }),
+                                                                dimensions: JSON.stringify(awbManifestData.dimensions),
+                                                                invoices: JSON.stringify([{
+                                                                    inv_num: selectedOrder.shortOrderNumber || selectedOrder._id.slice(0, 8),
+                                                                    inv_amt: selectedOrder.total
+                                                                }]),
+                                                                shipment_details: JSON.stringify([{
+                                                                    order_id: selectedOrder.shortOrderNumber || selectedOrder._id.slice(0, 8),
+                                                                    box_count: 1,
+                                                                    description: `Order ${selectedOrder.shortOrderNumber}`,
+                                                                    weight: awbManifestData.weight,
+                                                                    waybills: [],
+                                                                    master: false
+                                                                }])
+                                                            };
+                                                            const result = await callCourierProxy('manifest_create', null, manifestPayload);
+                                                            if (result?.lrn || result?.LRN) {
+                                                                const generatedLrn = result.lrn || result.LRN;
+                                                                setTrackingData(prev => ({ ...prev, trackingId: generatedLrn }));
+                                                                toast.success(`AWB Generated: ${generatedLrn}`);
+                                                            }
+                                                        } catch (err) {
+                                                            console.error('AWB generation error:', err);
+                                                        } finally {
+                                                            setGeneratingAwb(false);
+                                                        }
+                                                    }}
+                                                    disabled={generatingAwb || ltlLoading}
+                                                    className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 px-3 py-2 text-xs font-bold text-white hover:from-blue-700 hover:to-purple-700 disabled:opacity-60"
+                                                >
+                                                    {generatingAwb ? '⏳ Generating AWB...' : '🚀 Generate AWB'}
+                                                </button>
+                                            </div>
+                                        )}
+                                        <div>
+                                            <label className="text-xs text-slate-500">LRN / Tracking ID {trackingData.trackingId && <span className="text-green-600 font-bold">✓</span>}</label>
+                                            <input
+                                                value={trackingData.trackingId}
+                                                onChange={(e) => setTrackingData(prev => ({ ...prev, trackingId: e.target.value }))}
+                                                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono"
+                                                placeholder="Enter LRN or Generate AWB"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-600 mb-1.5">📦 Schedule Pickup Details</label>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label className="block text-[10px] text-slate-500 mb-1">Warehouse Name</label>
+                                                    <input
+                                                        value={ltlPickupData.client_warehouse}
+                                                        onChange={(e) => setLtlPickupData(prev => ({ ...prev, client_warehouse: e.target.value }))}
+                                                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+                                                        placeholder="Client warehouse"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] text-slate-500 mb-1">Package Count</label>
+                                                    <input
+                                                        value={ltlPickupData.expected_package_count}
+                                                        onChange={(e) => setLtlPickupData(prev => ({ ...prev, expected_package_count: Number(e.target.value || 1) }))}
+                                                        type="number"
+                                                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+                                                        placeholder="No. of packages"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] text-slate-500 mb-1">Pickup Date</label>
+                                                    <input
+                                                        value={ltlPickupData.pickup_date}
+                                                        onChange={(e) => setLtlPickupData(prev => ({ ...prev, pickup_date: e.target.value }))}
+                                                        type="date"
+                                                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] text-slate-500 mb-1">Start Time</label>
+                                                    <input
+                                                        value={ltlPickupData.start_time}
+                                                        onChange={(e) => setLtlPickupData(prev => ({ ...prev, start_time: e.target.value }))}
+                                                        type="time"
+                                                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-600 mb-1.5">🏷️ Shipping Label</label>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label className="block text-[10px] text-slate-500 mb-1">Label Size</label>
+                                                    <select
+                                                        value={ltlLabelSize}
+                                                        onChange={(e) => setLtlLabelSize(e.target.value)}
+                                                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+                                                    >
+                                                        <option value="std">Standard</option>
+                                                        <option value="a4">A4</option>
+                                                        <option value="thermal">Thermal</option>
+                                                    </select>
+                                                </div>
+                                                <div className="flex items-end">
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (!trackingData.trackingId) {
+                                                                toast.error('Add LRN first');
+                                                                return;
+                                                            }
+                                                            await callCourierProxy('label_get', {
+                                                                size: ltlLabelSize,
+                                                                lrn: trackingData.trackingId
+                                                            });
+                                                        }}
+                                                        disabled={ltlLoading}
+                                                        className="w-full rounded-lg bg-slate-800 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-900 disabled:opacity-60"
+                                                    >
+                                                        📄 Get Label URL
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-600 mb-1.5">⚡ Quick Actions</label>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <button
+                                                    onClick={async () => {
+                                                        if (!trackingData.trackingId) {
+                                                            toast.error('Add LRN first');
+                                                            return;
+                                                        }
+                                                        await callCourierProxy('lrn_track', { lrnum: trackingData.trackingId });
+                                                    }}
+                                                    disabled={ltlLoading}
+                                                    className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                                                >
+                                                    📍 Track LRN
+                                                </button>
+                                                <button
+                                                    onClick={async () => {
+                                                        if (!ltlPickupData.client_warehouse || !ltlPickupData.pickup_date || !ltlPickupData.start_time) {
+                                                            toast.error('Fill pickup details');
+                                                            return;
+                                                        }
+                                                        await callCourierProxy('pickup_create', null, ltlPickupData);
+                                                    }}
+                                                    disabled={ltlLoading}
+                                                    className="rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-60"
+                                                >
+                                                    🚚 Create Pickup
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                const lrnParam = trackingData.trackingId ? `lrn=${encodeURIComponent(trackingData.trackingId)}` : '';
+                                                const orderParam = `orderId=${encodeURIComponent(selectedOrder._id)}`;
+                                                const query = [lrnParam, orderParam].filter(Boolean).join('&');
+                                                router.push(`/store/courior?${query}`);
+                                            }}
+                                            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                                        >
+                                            🎛️ Open Courier Console
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Return/Replacement Request Section */}

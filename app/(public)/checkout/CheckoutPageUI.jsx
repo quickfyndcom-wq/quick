@@ -12,11 +12,12 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/useAuth";
 import dynamic from "next/dynamic";
 import Script from "next/script";
+import Link from "next/link";
+import Image from "next/image";
 import Creditimage1 from '../../../assets/creditcards/19 - Copy.webp';
 import Creditimage2 from '../../../assets/creditcards/16 - Copy.webp';
 import Creditimage3 from '../../../assets/creditcards/20.webp';
 import Creditimage4 from '../../../assets/creditcards/11.webp';
-import Image from "next/image";
 
 const SignInModal = dynamic(() => import("@/components/SignInModal"), { ssr: false });
 const AddressModal = dynamic(() => import("@/components/AddressModal"), { ssr: false });
@@ -1569,33 +1570,6 @@ export default function CheckoutPage() {
         </div>
         {/* Right column: discount input, order summary and place order button */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 h-fit flex flex-col justify-between">
-          {/* Date & Time Section */}
-          <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
-            <div className="text-sm text-gray-600 space-y-2">
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M6 2a1 1 0 000 2h8a1 1 0 100-2H6z"></path>
-                  <path fillRule="evenodd" d="M2 5a2 2 0 012-2 1 1 0 100 2H2v11a2 2 0 002 2h12a2 2 0 002-2V7h-.732a1 1 0 100-2A2 2 0 0016 3a2 2 0 00-2-2H6a2 2 0 00-2 2zm5 4a1 1 0 000 2h4a1 1 0 000-2H7z" clipRule="evenodd"></path>
-                </svg>
-                <span className="font-semibold text-gray-900">Order Date & Time</span>
-              </div>
-              <div className="ml-6 text-xs space-y-1">
-                <div className="text-gray-700">
-                  <span className="font-medium">{new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-                </div>
-                <div className="text-gray-600">
-                  <span className="font-medium">{new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-                </div>
-              </div>
-              <div className="mt-2 text-xs text-green-700 font-medium flex items-center gap-1">
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
-                </svg>
-                Estimated delivery in {shippingSetting?.estimatedDays || '2-5'} business days
-              </div>
-            </div>
-          </div>
-
           {/* Discounts & Coupons - Clickable Section */}
           <button
             type="button"
@@ -2056,75 +2030,6 @@ export default function CheckoutPage() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Recommended Products Section */}
-      {products && products.filter(p => (p.salePrice || p.price || 0) < 50).length > 0 && (
-      <div className="py-12 bg-white border-t ">
-        <div className="max-w-[1250px] mx-auto px-4 sm:px-6">
-          <h2 className="text-2xl font-bold mb-8 text-gray-900">Recommended For You</h2>
-          
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {products && products.filter(product => {
-              const price = product.salePrice || product.price || 0;
-              return price < 50;
-            }).map((product) => {
-              const price = product.salePrice || product.price || 0;
-              const imageUrl = product.image || product.images?.[0] || '/placeholder.png';
-              
-              return (
-                <Link 
-                  key={product._id} 
-                  href={`/product/${product._id}`}
-                  className="group bg-white rounded-lg border border-gray-200 hover:border-orange-400 overflow-hidden transition-all hover:shadow-md"
-                >
-                  <div className="relative w-full aspect-square bg-gray-100 overflow-hidden">
-                    <img 
-                      src={imageUrl}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                    />
-                    {product.discount && (
-                      <div className="absolute top-2 right-2 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded">
-                        {product.discount}% OFF
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="p-3">
-                    <p className="text-xs text-gray-600 font-medium line-clamp-1 mb-1">
-                      {product.brand || 'Brand'}
-                    </p>
-                    <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 mb-2">
-                      {product.name}
-                    </h3>
-                    
-                    <div className="flex items-baseline gap-2 mb-2">
-                      <span className="text-lg font-bold text-gray-900">₹{Math.floor(price)}</span>
-                      {product.price > price && (
-                        <span className="text-xs text-gray-500 line-through">₹{Math.floor(product.price)}</span>
-                      )}
-                    </div>
-                    
-                    {product.rating && (
-                      <div className="flex items-center gap-1">
-                        <div className="flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <span key={i} className={`text-xs ${i < Math.floor(product.rating) ? 'text-yellow-400' : 'text-gray-300'}`}>
-                              ★
-                            </span>
-                          ))}
-                        </div>
-                        <span className="text-xs text-gray-500">({product.reviews || 0})</span>
-                      </div>
-                    )}
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </div>
       )}
       
       {/* Razorpay Script */}

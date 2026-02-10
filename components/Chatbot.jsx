@@ -64,18 +64,18 @@ const Chatbot = () => {
         }
     }, [isOpen]);
 
-    // Auto-open chatbot after 5 seconds with wave animation
-    useEffect(() => {
-        if (!hasAutoOpened) {
-            // Auto-open chat on page load
-            const openTimer = setTimeout(() => {
-                setIsOpen(true);
-                setHasAutoOpened(true);
-            }, 1000);
+    // Auto-open chatbot disabled - only opens on click
+    // useEffect(() => {
+    //     if (!hasAutoOpened) {
+    //         // Auto-open chat on page load
+    //         const openTimer = setTimeout(() => {
+    //             setIsOpen(true);
+    //             setHasAutoOpened(true);
+    //         }, 1000);
 
-            return () => clearTimeout(openTimer);
-        }
-    }, [hasAutoOpened]);
+    //         return () => clearTimeout(openTimer);
+    //     }
+    // }, [hasAutoOpened]);
 
     // Close language menu when clicking outside
     useEffect(() => {

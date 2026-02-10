@@ -1,6 +1,6 @@
 "use client"
 import { usePathname } from "next/navigation"
-import { HomeIcon, LayoutListIcon, SquarePenIcon, SquarePlusIcon, StarIcon, FolderIcon, TicketIcon, TruckIcon, RefreshCw, User as UserIcon, Users as UsersIcon, MessageSquare, Sparkles, BellIcon, MailIcon, Clock, Settings, Image as ImageIcon, ShoppingCart } from "lucide-react"
+import { HomeIcon, LayoutListIcon, SquarePenIcon, SquarePlusIcon, StarIcon, FolderIcon, TicketIcon, TruckIcon, RefreshCw, User as UserIcon, Users as UsersIcon, MessageSquare, Sparkles, BellIcon, MailIcon, Clock, Settings, Image as ImageIcon, ShoppingCart, Wallet } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { useState, useEffect } from "react";
@@ -23,6 +23,8 @@ const StoreSidebar = ({storeInfo}) => {
         { name: 'Customers', href: '/store/customers', icon: UsersIcon },
         { name: 'Manage Users', href: '/store/settings/users', icon: UserIcon },
         { name: 'Orders', href: '/store/orders', icon: LayoutListIcon },
+        { name: 'Courier', href: '/store/courior', icon: TruckIcon },
+        { name: 'Balance', href: '/store/balance', icon: Wallet },
         { name: 'Return Requests', href: '/store/return-requests', icon: RefreshCw },
         { name: 'Reviews', href: '/store/reviews', icon: StarIcon },
         { name: 'Support Tickets', href: '/store/tickets', icon: MessageSquare },
