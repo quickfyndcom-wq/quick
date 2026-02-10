@@ -401,22 +401,38 @@ export default function CheckoutPage() {
       // Clean phone number: remove all non-digits
       const cleanPhone = (phone) => phone ? String(phone).replace(/\D/g, '') : '';
       
-      setForm((f) => ({ 
-        ...f, 
-        addressId: firstAddr._id,
-        name: firstAddr.name || f.name,
-        email: firstAddr.email || f.email,
-        phone: cleanPhone(firstAddr.phone),
-        phoneCode: firstAddr.phoneCode || '+91',
-        alternatePhone: cleanPhone(firstAddr.alternatePhone),
-        alternatePhoneCode: firstAddr.alternatePhoneCode || '+91',
-        street: firstAddr.street || f.street,
-        city: firstAddr.city || f.city,
-        state: firstAddr.state || f.state,
-        district: firstAddr.district || f.district,
-        country: firstAddr.country || f.country,
-        pincode: firstAddr.zip || firstAddr.pincode || f.pincode,
-      }));
+      setForm((f) => {
+        // Try to get phone from: address -> user profile -> keep existing
+        const addressPhone = cleanPhone(firstAddr.phone);
+        const userPhone = cleanPhone(user?.phoneNumber || user?.phone);
+        const finalPhone = addressPhone || userPhone || f.phone || '';
+        
+        console.log('Loading address - Phone sources:', {
+          addressPhone,
+          userPhone,
+          finalPhone,
+          currentFormPhone: f.phone,
+          addressHasPhone: !!firstAddr.phone,
+          userHasPhone: !!(user?.phoneNumber || user?.phone)
+        });
+        
+        return { 
+          ...f, 
+          addressId: firstAddr._id,
+          name: firstAddr.name || f.name,
+          email: firstAddr.email || f.email,
+          phone: finalPhone,
+          phoneCode: firstAddr.phoneCode || '+91',
+          alternatePhone: cleanPhone(firstAddr.alternatePhone),
+          alternatePhoneCode: firstAddr.alternatePhoneCode || '+91',
+          street: firstAddr.street || f.street,
+          city: firstAddr.city || f.city,
+          state: firstAddr.state || f.state,
+          district: firstAddr.district || f.district,
+          country: firstAddr.country || f.country,
+          pincode: firstAddr.zip || firstAddr.pincode || f.pincode,
+        };
+      });
     }
   }, [user, addressList, form.addressId]);
 
@@ -1294,6 +1310,56 @@ export default function CheckoutPage() {
                 </button>
               ) : (!user && (
                 <div className="flex flex-col gap-3">{/* Guest form starts here */}
+                
+                {/* Phone Number Section - Show for logged-in users if missing from address */}
+                {user && addressList.length > 0 && (!form.phone || form.phone.length < 7) && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-3">
+                    <div className="flex items-start gap-2 mb-3">
+                      <svg className="w-5 h-5 text-yellow-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-semibold text-yellow-800">Phone Number Required</p>
+                        <p className="text-xs text-yellow-700 mt-1">Your address doesn't have a phone number. Please add one for delivery contact.</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <select
+                        className="border border-yellow-300 bg-white rounded px-2 py-2 focus:border-yellow-400"
+                        name="phoneCode"
+                        value={form.phoneCode}
+                        onChange={handleChange}
+                        style={{ maxWidth: '110px' }}
+                        required
+                      >
+                        {countryCodes.map((c) => (
+                          <option key={c.code} value={c.code}>{c.code}</option>
+                        ))}
+                      </select>
+                      <input
+                        className="border border-yellow-300 bg-white rounded px-4 py-2 flex-1 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200"
+                        type="tel"
+                        name="phone"
+                        placeholder="Enter phone number"
+                        value={form.phone || ''}
+                        onChange={(e) => {
+                          // Only allow digits
+                          const cleaned = e.target.value.replace(/\D/g, '');
+                          setForm(f => ({ ...f, phone: cleaned }));
+                        }}
+                        pattern="[0-9]{7,15}"
+                        title="Phone number must be 7-15 digits"
+                        maxLength="15"
+                        required
+                      />
+                    </div>
+                    {form.phone && (form.phone.length < 7 || form.phone.length > 15) && (
+                      <div className="text-red-500 text-xs mt-2">Phone number must be 7-15 digits</div>
+                    )}
+                  </div>
+                )}
+                  
+                {!user && (<>
                   {/* ...existing code for guest/inline address form... */}
                   {/* Name */}
                   <input
@@ -1883,15 +1949,41 @@ export default function CheckoutPage() {
           if (selectedAddr) {
             // Clean phone number: remove all non-digits
             const cleanPhone = (phone) => phone ? String(phone).replace(/\D/g, '') : '';
-            setForm(f => ({ 
-              ...f, 
-              addressId,
-              name: selectedAddr.name || f.name,
-              email: selectedAddr.email || f.email,
-              phone: cleanPhone(selectedAddr.phone),
-              phoneCode: selectedAddr.phoneCode || '+91',
-              alternatePhone: cleanPhone(selectedAddr.alternatePhone),
-              alternatePhoneCode: selectedAddr.alternatePhoneCode || '+91',
+            setForm(f => {
+              // Try to get phone from: address -> user profile -> keep existing
+              const addressPhone = cleanPhone(selectedAddr.phone);
+              const userPhone = cleanPhone(user?.phoneNumber || user?.phone);
+              const finalPhone = addressPhone || userPhone || f.phone || '';
+              
+              console.log('Selecting address - Phone sources:', {
+                addressPhone,
+                userPhone,
+                finalPhone,
+                currentFormPhone: f.phone,
+                addressHasPhone: !!selectedAddr.phone
+              });
+              
+              return { 
+                ...f, 
+                addressId,
+                name: selectedAddr.name || f.name,
+                email: selectedAddr.email || f.email,
+                phone: finalPhone,
+                phoneCode: selectedAddr.phoneCode || '+91',
+                alternatePhone: cleanPhone(selectedAddr.alternatePhone),
+                alternatePhoneCode: selectedAddr.alternatePhoneCode || '+91',
+                street: selectedAddr.street || f.street,
+                city: selectedAddr.city || f.city,
+                state: selectedAddr.state || f.state,
+                district: selectedAddr.district || f.district,
+                country: selectedAddr.country || f.country,
+                pincode: selectedAddr.zip || selectedAddr.pincode || f.pincode,
+              };
+            });
+          } else {
+            setForm(f => ({ ...f, addressId }));
+          }
+        }}
               street: selectedAddr.street || f.street,
               city: selectedAddr.city || f.city,
               state: selectedAddr.state || f.state,
