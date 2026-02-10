@@ -27,7 +27,46 @@ export default function OrdersClient() {
         try {
             const token = await auth.currentUser.getIdToken(true);
             const { data } = await axios.get('/api/orders', { headers: { Authorization: `Bearer ${token}` } });
-            const list = Array.isArray(data?.orders) ? data.orders : (Array.isArray(data) ? data : []);
+            let list = Array.isArray(data?.orders) ? data.orders : (Array.isArray(data) ? data : []);
+            
+            // Fetch latest Delhivery tracking status for orders with trackingId
+            list = await Promise.all(list.map(async (order) => {
+                let updatedOrder = { ...order };
+                
+                if (order.trackingId) {
+                    try {
+                        const trackingResponse = await axios.get(`/api/track-order?awb=${order.trackingId}`, { 
+                            headers: { Authorization: `Bearer ${token}` } 
+                        });
+                        if (trackingResponse.data.success && trackingResponse.data.order) {
+                            updatedOrder = {
+                                ...updatedOrder,
+                                delhivery: trackingResponse.data.order.delhivery,
+                                status: trackingResponse.data.order.status || updatedOrder.status,
+                                trackingUrl: trackingResponse.data.order.trackingUrl || updatedOrder.trackingUrl
+                            };
+                        }
+                    } catch (error) {
+                        console.error(`Failed to fetch tracking for ${order.trackingId}:`, error);
+                    }
+                }
+                
+                // Auto-mark COD orders as PAID if they're DELIVERED
+                const paymentMethod = (updatedOrder.paymentMethod || '').toLowerCase();
+                const status = (updatedOrder.status || '').toUpperCase();
+                
+                if (paymentMethod === 'cod' && status === 'DELIVERED') {
+                    updatedOrder.isPaid = true;
+                }
+                
+                // Also check if Delhivery reported payment collected
+                if (updatedOrder.delhivery?.payment?.is_cod_recovered && paymentMethod === 'cod') {
+                    updatedOrder.isPaid = true;
+                }
+                
+                return updatedOrder;
+            }));
+            
             setOrders(list);
             setLoading(false);
         } catch (error) {
@@ -79,22 +118,12 @@ export default function OrdersClient() {
                 <div className="my-20 max-w-7xl mx-auto">
                     <PageTitle heading="My Orders" text={`Showing total ${orders.length} orders`} linkText={'Go to home'} />
 
-                    {/* If you display currency here, use ₹ instead of ₹ */}
-                    <table className="w-full max-w-5xl text-slate-500 table-auto border-separate border-spacing-y-12 border-spacing-x-4">
-                        <thead>
-                            <tr className="max-sm:text-sm text-slate-600 max-md:hidden">
-                                <th className="text-left">Product</th>
-                                <th className="text-center">Total Price (₹)</th>
-                                <th className="text-left">Address</th>
-                                <th className="text-left">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {orders.map((order) => (
-                                <OrderItem order={order} key={order.id} currencySymbol="₹" />
-                            ))}
-                        </tbody>
-                    </table>
+                    {/* Card-based layout instead of table */}
+                    <div className="mt-8 space-y-6">
+                        {orders.map((order) => (
+                            <OrderItem order={order} key={order.id} currencySymbol="₹" />
+                        ))}
+                    </div>
                 </div>
             ) : (
                 <div className="min-h-[80vh] mx-6 flex items-center justify-center text-slate-400">

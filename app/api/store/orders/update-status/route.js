@@ -79,7 +79,19 @@ export async function POST(request) {
         // Update order status
         order.status = status;
 
+        // Auto-mark COD orders as PAID when delivered
         const normalizedStatus = String(status || '').toUpperCase();
+        const paymentMethod = (order.paymentMethod || '').toLowerCase();
+        
+        if (normalizedStatus === 'DELIVERED' && paymentMethod === 'cod') {
+            order.isPaid = true;
+        }
+        
+        // Also check if Delhivery has reported payment collected
+        if (order.delhivery?.payment?.is_cod_recovered && paymentMethod === 'cod') {
+            order.isPaid = true;
+        }
+
         if (normalizedStatus === 'DELIVERED' && order.userId && !order.rewardsCredited) {
             // Earn 5 coins per ₹100 spent (5% earning rate)
             const coinsEarned = Math.floor((order.total || 0) * 0.05);

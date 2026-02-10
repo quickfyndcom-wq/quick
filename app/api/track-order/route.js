@@ -114,6 +114,11 @@ export async function GET(req) {
           order.trackingUrl = order.trackingUrl || normalized.trackingUrl;
           order.courier = order.courier || normalized.courier;
           order.trackingId = order.trackingId || normalized.trackingId;
+          
+          // IMPORTANT: Update order.status to match delhivery tracking status if available
+          if (normalized.delhivery?.current_status) {
+            order.status = normalized.delhivery.current_status;
+          }
         }
       }
     } catch (e) {

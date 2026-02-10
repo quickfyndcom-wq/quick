@@ -149,7 +149,13 @@ export default function StoreOrders() {
             PAYMENT_FAILED: orders.filter(o => o.status === 'PAYMENT_FAILED').length,
             RETURNED: orders.filter(o => o.status === 'RETURNED').length,
             RETURN_REQUESTED: orders.filter(o => o.returns && o.returns.some(r => r.status === 'REQUESTED')).length,
-            PENDING_PAYMENT: orders.filter(o => !o.isPaid).length,
+            PENDING_PAYMENT: orders.filter(o => {
+                // Auto-mark COD orders as PAID if delivered
+                const paymentMethod = (o.paymentMethod || '').toLowerCase();
+                const status = (o.status || '').toUpperCase();
+                const isPaid = paymentMethod === 'cod' && status === 'DELIVERED' ? true : o.isPaid;
+                return !isPaid;
+            }).length,
             PENDING_SHIPMENT: orders.filter(o => !o.trackingId && ['ORDER_PLACED', 'PROCESSING'].includes(o.status)).length,
         };
         return stats;
@@ -157,7 +163,13 @@ export default function StoreOrders() {
     // Filter orders based on selected status
     const getFilteredOrders = () => {
         if (filterStatus === 'ALL') return orders;
-        if (filterStatus === 'PENDING_PAYMENT') return orders.filter(o => !o.isPaid);
+        if (filterStatus === 'PENDING_PAYMENT') return orders.filter(o => {
+            // Auto-mark COD orders as PAID if delivered
+            const paymentMethod = (o.paymentMethod || '').toLowerCase();
+            const status = (o.status || '').toUpperCase();
+            const isPaid = paymentMethod === 'cod' && status === 'DELIVERED' ? true : o.isPaid;
+            return !isPaid;
+        });
         if (filterStatus === 'PENDING_SHIPMENT') return orders.filter(o => !o.trackingId && ['ORDER_PLACED', 'PROCESSING'].includes(o.status));
         if (filterStatus === 'RETURN_REQUESTED') return orders.filter(o => o.returns && o.returns.some(r => r.status === 'REQUESTED'));
         return orders.filter(o => o.status === filterStatus);
@@ -244,9 +256,15 @@ export default function StoreOrders() {
         }
         try {
             const token = await getToken();
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+            
             const { data } = await axios.get(`/api/track-order?awb=${order.trackingId}`, {
-                headers: { Authorization: `Bearer ${token}` }
+                headers: { Authorization: `Bearer ${token}` },
+                signal: controller.signal
             });
+            
+            clearTimeout(timeoutId);
 
             if (!data.order || !data.order.delhivery) {
                 toast.error('No live courier status found yet. Try again later.');
@@ -274,8 +292,13 @@ export default function StoreOrders() {
 
             toast.success(`Order status set to "${mappedStatus}" from tracking.`);
         } catch (error) {
-            console.error('Auto status sync failed:', error);
-            toast.error(error?.response?.data?.error || 'Failed to auto-sync status from tracking');
+            if (error.name === 'AbortError') {
+                console.error('Auto status sync timeout after 10 seconds');
+                toast.error('Request timeout. Delhivery API took too long. Please try again.');
+            } else {
+                console.error('Auto status sync failed:', error);
+                toast.error(error?.response?.data?.error || 'Failed to auto-sync status from tracking');
+            }
         }
     };
     // Move openModal and closeModal to top level
@@ -301,6 +324,61 @@ export default function StoreOrders() {
         setIsModalOpen(true);
     };
 
+    // Check Razorpay payment settlement status
+    const checkRazorpaySettlement = async (order) => {
+        if (!order.razorpayPaymentId) {
+            toast.error('This order does not have a Razorpay payment');
+            return;
+        }
+        
+        try {
+            const token = await getToken();
+            const { data } = await axios.get(`/api/store/orders/check-razorpay-settlement?orderId=${order._id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            
+            if (data.success) {
+                // Update order locally if it was updated
+                if (data.updated) {
+                    setSelectedOrder(prev => prev && prev._id === order._id ? {
+                        ...prev,
+                        isPaid: true,
+                        paymentStatus: 'CAPTURED'
+                    } : prev);
+                    setOrders(prev => prev.map(o => 
+                        o._id === order._id ? {
+                            ...o,
+                            isPaid: true,
+                            paymentStatus: 'CAPTURED'
+                        } : o
+                    ));
+                }
+                
+                const settlement = data.razorpayStatus;
+                let message = `💳 Razorpay Payment Status\n`;
+                message += `Amount: ₹${settlement.amount}\n`;
+                message += `Status: ${settlement.payment_captured ? '✓ Captured' : '✗ Not captured'}\n`;
+                message += `Fee: ₹${settlement.fee || 0}\n`;
+                message += `Settlement: ${settlement.settlement_status}\n`;
+                
+                if (settlement.transfer_details) {
+                    message += `✓ Transferred to Bank\n`;
+                    message += `Transfer ID: ${settlement.transfer_details.transfer_id}\n`;
+                    message += `Amount: ₹${settlement.transfer_details.amount_transferred}`;
+                } else {
+                    message += `Pending transfer to bank account`;
+                }
+                
+                toast.success(message);
+            } else {
+                toast.error(data.error);
+            }
+        } catch (error) {
+            console.error('Razorpay check error:', error);
+            toast.error(error?.response?.data?.error || 'Failed to check payment settlement');
+        }
+    };
+
     const closeModal = () => {
         setIsModalOpen(false);
         setSelectedOrder(null);
@@ -310,6 +388,38 @@ export default function StoreOrders() {
             trackingUrl: '',
             courier: ''
         });
+    };
+
+    // Helper function to compute correct payment status
+    const getPaymentStatus = (order) => {
+        // Auto-mark COD orders as PAID if delivered
+        const paymentMethod = (order.paymentMethod || '').toLowerCase();
+        const status = (order.status || '').toUpperCase();
+        
+        console.log('[PAYMENT STATUS DEBUG]', {
+            orderId: order._id,
+            paymentMethod: order.paymentMethod,
+            status: order.status,
+            isPaid: order.isPaid,
+            normalizedPaymentMethod: paymentMethod,
+            normalizedStatus: status,
+            isCOD: paymentMethod === 'cod',
+            isDelivered: status === 'DELIVERED',
+            shouldMarkPaid: paymentMethod === 'cod' && status === 'DELIVERED',
+            delhiveryPaymentCollected: order.delhivery?.payment?.is_cod_recovered
+        });
+        
+        // Check if COD + DELIVERED
+        if (paymentMethod === 'cod' && status === 'DELIVERED') {
+            return true;
+        }
+        
+        // Check if Delhivery reported payment collected
+        if (order.delhivery?.payment?.is_cod_recovered) {
+            return true;
+        }
+        
+        return order.isPaid || false;
     };
 
     const fetchOrders = async () => {
@@ -322,6 +432,14 @@ export default function StoreOrders() {
             }
             const { data } = await axios.get('/api/store/orders', {headers: { Authorization: `Bearer ${token}` }});
             console.log('[ORDERS DEBUG] Raw orders data:', data.orders);
+            
+            // Debug first 3 orders
+            if (data.orders && data.orders.length > 0) {
+                console.log('[ORDERS DEBUG] First 3 orders payment/status info:');
+                data.orders.slice(0, 3).forEach((o, i) => {
+                    console.log(`Order ${i}:`, { _id: o._id, paymentMethod: o.paymentMethod, status: o.status, isPaid: o.isPaid });
+                });
+            }
 
             let syncedOrders = data.orders || [];
 
@@ -620,8 +738,8 @@ export default function StoreOrders() {
                                     </td>
                                     <td className="px-4 py-3 font-medium text-slate-800">{currency}{order.total}</td>
                                     <td className="px-4 py-3">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${order.isPaid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                            {order.isPaid ? '✓ Paid' : 'Pending'}
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatus(order) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                            {getPaymentStatus(order) ? '✓ Paid' : 'Pending'}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3" onClick={e => { e.stopPropagation(); }}>
@@ -1161,8 +1279,50 @@ export default function StoreOrders() {
                                     </div>
                                     <div>
                                         <p className="text-slate-500">Payment Status</p>
-                                        <p className="font-medium text-slate-900">{selectedOrder.isPaid ? "✓ Paid" : "Pending"}</p>
+                                        <p className="font-medium text-slate-900">{getPaymentStatus(selectedOrder) ? "✓ Paid" : "Pending"}</p>
                                     </div>
+                                    
+                                    {/* Delhivery Payment Collection Info */}
+                                    {selectedOrder.delhivery?.payment && (
+                                        <>
+                                            {selectedOrder.delhivery.payment.is_cod_recovered && (
+                                                <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                                                    <p className="text-sm text-green-700 font-medium">✓ Payment Collected by Delhivery</p>
+                                                    {selectedOrder.delhivery.payment.cod_amount > 0 && (
+                                                        <p className="text-sm text-green-600 mt-1">
+                                                            Amount: ₹{selectedOrder.delhivery.payment.cod_amount}
+                                                        </p>
+                                                    )}
+                                                    {selectedOrder.delhivery.payment.payment_collected_at && (
+                                                        <p className="text-xs text-green-500 mt-1">
+                                                            Collected: {new Date(selectedOrder.delhivery.payment.payment_collected_at).toLocaleDateString()}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+                                    
+                                    {/* Razorpay Payment Settlement Info */}
+                                    {selectedOrder.razorpayPaymentId && (
+                                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                            <p className="text-sm text-blue-700 font-medium">💳 Card Payment (Razorpay)</p>
+                                            <p className="text-xs text-blue-600 mt-1">Payment ID: {selectedOrder.razorpayPaymentId.slice(-8)}</p>
+                                            {selectedOrder.razorpaySettlement?.is_transferred && (
+                                                <p className="text-xs text-green-600 mt-1">✓ Transferred to Bank Account</p>
+                                            )}
+                                            {!selectedOrder.razorpaySettlement?.is_transferred && (
+                                                <p className="text-xs text-amber-600 mt-1">⏳ Pending transfer to bank</p>
+                                            )}
+                                            <button
+                                                onClick={() => checkRazorpaySettlement(selectedOrder)}
+                                                className="mt-2 w-full px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded hover:bg-blue-700 transition"
+                                            >
+                                                Check Settlement Status
+                                            </button>
+                                        </div>
+                                    )}
+                                    
                                     {selectedOrder.isCouponUsed && (
                                         <div>
                                             <p className="text-slate-500">Coupon Used</p>

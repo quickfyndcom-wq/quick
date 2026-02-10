@@ -8,6 +8,19 @@ const OrderItemSchema = new mongoose.Schema({
   // Add more fields as needed
 }, { _id: false });
 
+const RazorpaySettlementSchema = new mongoose.Schema({
+  paymentId: String,                    // Razorpay payment ID
+  status: String,                       // TRANSFERRED, PENDING, FAILED
+  captured_at: Date,                    // When payment was captured
+  amount: Number,                       // Amount paid
+  fee: { type: Number, default: 0 },   // Razorpay processing fee
+  is_transferred: { type: Boolean, default: false }, // Is amount transferred to bank?
+  transferred_at: Date,                 // When transferred to bank account
+  transfer_id: String,                  // Razorpay transfer ID
+  amount_transferred: Number,           // Amount that reached bank
+  recipient_id: String                  // Bank account identifier
+}, { _id: false, timestamps: false });
+
 const OrderSchema = new mongoose.Schema({
   storeId: { type: String, required: true },
   userId: String,
@@ -40,6 +53,13 @@ const OrderSchema = new mongoose.Schema({
   walletDiscount: { type: Number, default: 0 },
   coinsEarned: { type: Number, default: 0 },
   rewardsCredited: { type: Boolean, default: false },
+  
+  // Razorpay Payment Fields
+  razorpayPaymentId: { type: String, index: true },        // Razorpay payment ID (if card payment)
+  razorpayOrderId: String,                                  // Razorpay order ID
+  razorpaySignature: String,                                // Webhook signature for verification
+  razorpaySettlement: RazorpaySettlementSchema,            // Settlement details
+  
   // Return & Replacement
   returns: [{
     itemIndex: Number,

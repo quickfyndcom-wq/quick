@@ -38,13 +38,12 @@ export default function HeroBannerSlider() {
   }, [loaded]);
 
   useEffect(() => {
-    // Fallback: if images haven't loaded after 2 seconds, show banner anyway
+    // Fallback: if images haven't loaded after 800ms, show banner anyway
     const timeout = setTimeout(() => {
       if (isInitialLoad) {
-        console.warn('⚠️ Banner images taking too long to load, showing anyway');
         setIsInitialLoad(false);
       }
-    }, 2000);
+    }, 800);
     
     return () => clearTimeout(timeout);
   }, [isInitialLoad]);
@@ -121,7 +120,8 @@ export default function HeroBannerSlider() {
               width={1250}
               height={HEIGHT}
               priority={i === 0}
-              quality={75}
+              loading={i === 0 ? 'eager' : 'lazy'}
+              quality={i === 0 ? 85 : 75}
               style={{
                 width: '100%',
                 height: '100%',
@@ -130,7 +130,6 @@ export default function HeroBannerSlider() {
                 display: 'block',
               }}
               onLoadingComplete={() => {
-                console.log('✅ Image loaded:', i);
                 setLoaded((prev) => {
                   if (prev[i]) return prev;
                   const next = [...prev];
@@ -138,8 +137,14 @@ export default function HeroBannerSlider() {
                   return next;
                 });
               }}
-              onError={(err) => {
-                console.error('❌ Image failed:', i, err);
+              onError={() => {
+                // Silently handle image load failures and continue
+                setLoaded((prev) => {
+                  if (prev[i]) return prev;
+                  const next = [...prev];
+                  next[i] = true; // Mark as loaded to prevent blocking
+                  return next;
+                });
                 // Show banner anyway if image fails
                 setIsInitialLoad(false);
               }}

@@ -25,27 +25,34 @@ export default function RecentSearchProducts() {
           if (token) {
             const response = await axios.get('/api/browse-history', {
               headers: { Authorization: `Bearer ${token}` },
+              timeout: 5000, // 5 second timeout
             });
             // API returns history with products already populated
-            if (response.data.history && response.data.history.length > 0) {
+            if (response.data?.success && response.data?.history && response.data.history.length > 0) {
               const viewed = response.data.history
                 .map(h => h.product)
                 .filter(Boolean)
                 .slice(0, 8);
-              setRecentProducts(viewed);
-              setIsNewCustomer(false);
-              return;
+              if (viewed.length > 0) {
+                setRecentProducts(viewed);
+                setIsNewCustomer(false);
+                return;
+              }
             }
           }
         } catch (error) {
-          console.error('Error fetching browse history from DB:', error);
+          console.error('[RecentSearchProducts] Error fetching browse history from DB:', {
+            message: error.message,
+            code: error.code,
+            status: error.response?.status
+          });
           // Fallback to localStorage if API fails
           const localViewed = localStorage.getItem('recentlyViewed');
           if (localViewed) {
             try {
               viewedProductIds = JSON.parse(localViewed);
             } catch (e) {
-              console.error('Error parsing localStorage viewed:', e);
+              console.error('[RecentSearchProducts] Error parsing localStorage viewed:', e);
             }
           }
         }
@@ -56,13 +63,13 @@ export default function RecentSearchProducts() {
           try {
             viewedProductIds = JSON.parse(localViewed);
           } catch (error) {
-            console.error('Error parsing recently viewed:', error);
+            console.error('[RecentSearchProducts] Error parsing recently viewed:', error);
           }
         }
       }
 
       // Map IDs to products from Redux
-      if (viewedProductIds.length > 0) {
+      if (viewedProductIds.length > 0 && products.length > 0) {
         const viewed = viewedProductIds
           .map(id => products.find(p => (p._id || p.id) === id))
           .filter(Boolean)
@@ -75,7 +82,10 @@ export default function RecentSearchProducts() {
       }
     };
 
-    fetchRecentlyViewed();
+    // Only fetch if products are loaded
+    if (products && products.length > 0) {
+      fetchRecentlyViewed();
+    }
   }, [products, user, getToken]);
 
   // Don't show if customer is new

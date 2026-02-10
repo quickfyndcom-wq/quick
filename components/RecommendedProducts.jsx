@@ -20,22 +20,39 @@ export default function RecommendedProducts() {
       let viewed = [];
 
       // If logged in, fetch from database
-      if (user) {
+      if (user && user.uid) {
         try {
           const token = await getToken();
           if (token) {
             const response = await axios.get('/api/browse-history', {
               headers: { Authorization: `Bearer ${token}` },
+              timeout: 5000, // 5 second timeout
             });
             // API returns history with products already populated
-            if (response.data.history && response.data.history.length > 0) {
+            if (response.data?.history && response.data.history.length > 0) {
               viewed = response.data.history
                 .map(h => h.product)
                 .filter(Boolean);
             }
+          } else {
+            // No token available, use localStorage
+            const localViewed = localStorage.getItem('recentlyViewed');
+            if (localViewed) {
+              try {
+                const viewedIds = JSON.parse(localViewed);
+                viewed = viewedIds
+                  .map(id => products.find(p => (p._id || p.id) === id))
+                  .filter(Boolean);
+              } catch (e) {
+                // Silent - localStorage parse errors are not critical
+              }
+            }
           }
         } catch (error) {
-          console.error('Error fetching browse history from DB:', error);
+          // Silently fall back to localStorage - this is expected behavior for new users
+          if (error.response?.status !== 401 && error.response?.status !== 404) {
+            console.warn('Browse history unavailable, using localStorage');
+          }
           // Fallback to localStorage if API fails
           const localViewed = localStorage.getItem('recentlyViewed');
           if (localViewed) {
@@ -45,7 +62,7 @@ export default function RecommendedProducts() {
                 .map(id => products.find(p => (p._id || p.id) === id))
                 .filter(Boolean);
             } catch (e) {
-              console.error('Error parsing localStorage viewed:', e);
+              // Silent - localStorage parse errors are not critical
             }
           }
         }
@@ -59,7 +76,7 @@ export default function RecommendedProducts() {
               .map(id => products.find(p => (p._id || p.id) === id))
               .filter(Boolean);
           } catch (error) {
-            console.error('Error parsing recently viewed:', error);
+            // Silent - localStorage parse errors are not critical
           }
         }
       }

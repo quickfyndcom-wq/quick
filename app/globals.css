@@ -39,6 +39,35 @@
         }
     }
 
+    @keyframes wave {
+        0% {
+            transform: rotate(0deg);
+        }
+        10% {
+            transform: rotate(14deg);
+        }
+        20% {
+            transform: rotate(-8deg);
+        }
+        30% {
+            transform: rotate(14deg);
+        }
+        40% {
+            transform: rotate(-4deg);
+        }
+        50% {
+            transform: rotate(10deg);
+        }
+        60% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(0deg);
+        }
+    }
+
+
+
     @keyframes slideUp {
         0% {
             transform: translateY(100%);
@@ -242,6 +271,14 @@ body::-webkit-scrollbar-thumb {
     background: var(--sb-thumb-color);
     border-radius: 3px;
 }
+
+.animate-wave {
+    animation: wave 1.5s infinite;
+    transform-origin: 70% 70%;
+    display: inline-block;
+}
+
+
 
 @supports not selector(::-webkit-scrollbar) {
     body {
