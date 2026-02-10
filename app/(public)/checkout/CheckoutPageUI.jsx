@@ -1589,40 +1589,7 @@ export default function CheckoutPage() {
               </svg>
             </span>
           </button>
-          
-          {/* Order Details */}
-          <h2 className="font-bold text-lg mb-4 text-gray-900">Order details</h2>
 
-          {/* Product Items Summary */}
-          <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200 max-h-60 overflow-y-auto">
-            <h3 className="font-semibold text-sm text-gray-900 mb-3">Products ({cartArray.length})</h3>
-            <div className="space-y-2">
-              {cartArray.map((item) => (
-                <div key={item._id} className="flex gap-2 pb-2 border-b border-slate-200 last:border-0">
-                  <div className="relative flex-shrink-0">
-                    <img 
-                      src={item.image || item.images?.[0] || '/placeholder.png'} 
-                      alt={item.name} 
-                      className="w-10 h-10 object-cover rounded border border-slate-300"
-                    />
-                    <div className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-semibold rounded-full w-5 h-5 flex items-center justify-center">
-                      {item.quantity}
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-gray-900 line-clamp-2">{item.name}</p>
-                    <p className="text-xs text-gray-600">{item.brand || 'N/A'}</p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-xs font-semibold text-gray-900">
-                      ₹{(item.price * item.quantity).toLocaleString()}
-                    </p>
-                    <p className="text-xs text-gray-500">@₹{item.price.toLocaleString()}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
 
           {/* Price Breakdown */}
           <hr className="my-3" />
