@@ -27,7 +27,6 @@ function OrderSuccessContent() {
     const fetchOrder = async (orderId) => {
       try {
         let fetchOptions = {};
-        // Try to add token if user is logged in, but don't wait
         if (user && getToken) {
           try {
             const token = await getToken();
@@ -35,7 +34,7 @@ function OrderSuccessContent() {
               Authorization: `Bearer ${token}`,
             };
           } catch (e) {
-            // Continue without token
+           
           }
         }
         const res = await fetch(`/api/orders?orderId=${orderId}`, fetchOptions);
@@ -61,19 +60,12 @@ function OrderSuccessContent() {
       router.replace('/');
       return;
     }
-    // Fetch immediately without waiting for auth
     fetchOrder(orderId);
-    // eslint-disable-next-line
   }, [params, router, user, getToken]);
 
-  // Use first order for summary
   const order = orders && orders.length > 0 ? orders[0] : null;
-  // Use stored shortOrderNumber from database (same as dashboard shows)
-  // This ensures consistency between customer view and seller dashboard
   function getOrderNumber(orderObj) {
     if (!orderObj) return '';
-    // Use the shortOrderNumber field that was stored in database during order creation
-    // This matches what the dashboard and seller see
     return String(orderObj.shortOrderNumber || orderObj._id.slice(0, 8));
   }
   // Calculate totals
@@ -86,12 +78,20 @@ function OrderSuccessContent() {
   const orderDate = order?.createdAt ? new Date(order.createdAt).toLocaleDateString() : new Date().toLocaleDateString();
   const currency = order?.currency || '₹';
 
-  // Meta Pixel Purchase event
+  // Meta Pixel Purchase event with attribution data
   useEffect(() => {
     if (order && typeof window !== 'undefined' && window.fbq) {
+      // Get attribution data if available (from ads)
+      const attributionData = window.attributionData || {};
+      
       window.fbq('track', 'Purchase', {
         value: total,
-        currency: currency
+        currency: currency,
+        // Include attribution parameters for ad tracking
+        utm_source: attributionData.utm_source || 'organic',
+        utm_medium: attributionData.utm_medium || 'direct',
+        utm_campaign: attributionData.utm_campaign || 'none',
+        utm_id: attributionData.utm_id || null
       });
     }
   }, [order, total, currency]);

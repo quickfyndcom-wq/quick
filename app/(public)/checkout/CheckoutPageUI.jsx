@@ -8,6 +8,7 @@ import { fetchAddress } from "@/lib/features/address/addressSlice";
 import { clearCart } from "@/lib/features/cart/cartSlice";
 import { fetchProducts } from "@/lib/features/product/productSlice";
 import { fetchShippingSettings, calculateShipping } from "@/lib/shipping";
+import FbqInitiateCheckout from "@/components/FbqInitiateCheckout";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/useAuth";
 import dynamic from "next/dynamic";
@@ -1130,6 +1131,7 @@ export default function CheckoutPage() {
 
   return (
     <>
+      <FbqInitiateCheckout />
       <div className="py-10 bg-white md:pb-0 pb-32">
       <div className="max-w-[1250px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Left column: address, form, payment */}

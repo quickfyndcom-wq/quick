@@ -2,6 +2,8 @@
 'use client'
 import MobileBottomNav from "@/components/MobileBottomNav";
 import GuestOrderLinker from "@/components/GuestOrderLinker";
+import UtmTracker from "@/components/UtmTracker";
+import AdsAttribution from "@/components/AdsAttribution";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -29,6 +31,8 @@ function PublicLayoutContent({ children }) {
     return (
         <div className="flex flex-col min-h-screen">
             <GuestOrderLinker />
+            <UtmTracker />
+            <AdsAttribution />
             {/* <Banner />/ */}
             <main className={`flex-1 ${isHomePage ? 'pb-8' : 'pb-20'} lg:pb-0`}>{children}</main>
             {!isHomePage && !isCheckout && <MobileBottomNav />}
