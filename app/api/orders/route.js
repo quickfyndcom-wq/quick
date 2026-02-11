@@ -151,16 +151,35 @@ export async function POST(request) {
         for (const item of items) {
             if (!item.id || typeof item.id !== 'string' || !item.id.match(/^[a-fA-F0-9]{24}$/)) {
                 console.error('Invalid or missing productId in order item:', item.id);
-                return NextResponse.json({ error: 'Product ID required or invalid format', id: item.id }, { status: 400 });
+                return NextResponse.json({ 
+                    error: `Invalid product ID format: "${item.id}". Product IDs must be 24-character unique identifiers.`, 
+                    id: item.id 
+                }, { status: 400 });
             }
             let product;
             try {
                 product = await Product.findById(item.id).lean();
             } catch (err) {
                 console.error('Product.findById error:', err, 'productId:', item.id);
-                return NextResponse.json({ error: 'Invalid productId format', id: item.id }, { status: 400 });
+                return NextResponse.json({ 
+                    error: `Invalid product ID or database error: "${item.id}". Please clear your cart and try again.`, 
+                    id: item.id 
+                }, { status: 400 });
             }
-            if (!product) return NextResponse.json({ error: 'Product not found', id: item.id }, { status: 400 });
+            if (!product) {
+                console.error('Product not found in database. ProductId:', item.id);
+                console.error('Trying to find any product with this ID...');
+                // Try alternative lookups
+                const altProduct = await Product.findOne({$or: [{_id: item.id}, {id: item.id}, {slug: item.id}]}).lean();
+                if (!altProduct) {
+                    return NextResponse.json({ 
+                        error: `Product not found (ID: ${item.id}). This product may have been deleted. Please clear your cart and add items again.`, 
+                        id: item.id,
+                        productId: item.id 
+                    }, { status: 400 });
+                }
+                product = altProduct;
+            }
 
             // Stock validation - enforce available stock and max per order (20)
             const requestedQty = Math.min(Number(item.quantity) || 0, 20);
