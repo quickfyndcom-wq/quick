@@ -52,11 +52,10 @@ export default function RecentSearchProducts() {
           
           // Don't log if it's just an abort (expected timeout)
           if (error.name !== 'CanceledError' && error.code !== 'ERR_CANCELED') {
-            console.error('[RecentSearchProducts] Error fetching browse history from DB:', {
-              message: error.message,
-              code: error.code,
-              status: error.response?.status
-            });
+            // Only log if it's a real error, not a timeout
+            if (error.message && error.message !== 'The user aborted a request.') {
+              console.warn('[RecentSearchProducts] Browse history fetch warning:', error.message);
+            }
           }
           
           // Fallback to localStorage if API fails

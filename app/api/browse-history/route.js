@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/mongodb';
+import dbConnect from '@/lib/mongodb';
 import BrowseHistory from '@/models/BrowseHistory';
 import Product from '@/models/Product';
 import { getAuth } from '@/lib/firebase-admin';
@@ -7,7 +7,7 @@ import { getAuth } from '@/lib/firebase-admin';
 // GET - Fetch user's browse history
 export async function GET(request) {
   try {
-    await connectDB();
+    await dbConnect();
 
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -52,7 +52,7 @@ export async function GET(request) {
 // POST - Add product to browse history
 export async function POST(request) {
   try {
-    await connectDB();
+    await dbConnect();
 
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -91,7 +91,7 @@ export async function POST(request) {
 // DELETE - Clear browse history
 export async function DELETE(request) {
   try {
-    await connectDB();
+    await dbConnect();
 
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
