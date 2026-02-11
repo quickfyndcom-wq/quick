@@ -58,11 +58,8 @@ const StoreSidebar = ({storeInfo}) => {
             {/* Sidebar */}
             <div className="w-72 bg-gradient-to-br from-slate-50 via-white to-slate-50 border-r border-slate-200 flex flex-col overflow-hidden shadow-lg">
                 
-                {/* Logo/Header */}
-                <div className="px-6 py-6 border-b border-slate-200 bg-gradient-to-r from-blue-600 to-indigo-600">
-                    <h1 className="text-2xl font-bold text-white tracking-tight">QuickFynd</h1>
-                    <p className="text-blue-100 text-xs mt-1">Store Dashboard</p>
-                </div>
+           
+          
            
                 {/* Navigation Links */}
                 <div className="flex-1 overflow-y-auto scrollbar-hide px-3 py-4">
