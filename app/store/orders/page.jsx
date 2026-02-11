@@ -36,9 +36,28 @@ import { schedulePickup } from '@/lib/delhivery'
 
 // Add updateTrackingDetails function
 // (must be inside the component, not top-level)
-
-
-
+const updateTrackingDetails = async (orderId, trackingId, trackingUrl, courier, getToken, fetchOrders) => {
+    try {
+        const token = await getToken(true); // Force refresh token
+        if (!token) {
+            toast.error('Authentication failed. Please sign in again.');
+            return;
+        }
+        await axios.post('/api/store/orders/update-tracking', {
+            orderId,
+            trackingId,
+            trackingUrl,
+            courier
+        }, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success('Tracking details updated!');
+        fetchOrders();
+    } catch (error) {
+        console.error('Update tracking error:', error);
+        toast.error(error?.response?.data?.error || 'Failed to update tracking details');
+    }
+};
 
 export default function StoreOrders() {
     const currency = process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || '₹';

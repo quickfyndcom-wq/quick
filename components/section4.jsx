@@ -124,9 +124,9 @@ const HorizontalSlider = ({ section, router, allProducts }) => {
     const container = scrollRef.current
     if (!container) return
 
-    // Don't start dragging if clicking on interactive elements or product cards
+    // Don't start dragging if clicking on interactive elements (buttons, links, inputs)
     const target = e.target
-    if (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('select') || target.closest('.product-card-item')) {
+    if (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('select')) {
       return
     }
 
@@ -143,7 +143,7 @@ const HorizontalSlider = ({ section, router, allProducts }) => {
     const container = scrollRef.current
     if (!container || !dragStateRef.current.isDragging) return
 
-    const walk = (e.clientX - dragStateRef.current.startX) * 1.5
+    const walk = (e.clientX - dragStateRef.current.startX) * 1.0
     
     // Mark as moved if movement exceeds threshold (5px)
     if (Math.abs(walk) > 5) {
@@ -264,24 +264,24 @@ const HorizontalSlider = ({ section, router, allProducts }) => {
                         sizes="(max-width: 640px) 224px, 256px"
                       />
                       
+                      {/* Fast Delivery Badge */}
+                      {isFastDelivery(product) && (
+                        <div className="absolute top-2 left-2 z-20 text-white px-2.5 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: '#DC013C' }}>
+                          Fast Delivery
+                        </div>
+                      )}
+
                       {/* Discount Badge */}
                       {(() => {
                         const currentPrice = getCurrentPrice(product)
                         const regularPrice = getRegularPrice(product)
                         const discountPercent = getDiscountPercent(regularPrice, currentPrice)
                         return discountPercent ? (
-                          <div className="absolute top-2 left-2 z-20 bg-orange-500 text-white px-2 py-0.5 rounded text-xs font-bold">
-                            -{discountPercent}%
+                          <div className="absolute top-2 right-2 z-20 text-white px-2.5 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: '#00BC7D' }}>
+                            {discountPercent}% OFF
                           </div>
                         ) : null
                       })()}
-
-                      {/* Fast Delivery Badge */}
-                      {isFastDelivery(product) && (
-                        <div className="absolute top-2 left-2 z-20 bg-emerald-500 text-white px-2 py-1 rounded-md flex items-center gap-1">
-                          <span className="text-[10px] font-semibold">⚡ Fast</span>
-                        </div>
-                      )}
                     </>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400">

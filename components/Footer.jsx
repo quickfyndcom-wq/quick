@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import Image from "next/image";
-import Logo from "../assets/logo/Asset 6.png";
+import Logo from "../assets/logo/logo2.png";
 
 const Footer = () => {
 

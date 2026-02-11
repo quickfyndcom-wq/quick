@@ -91,7 +91,7 @@ const ProductCard = ({ product }) => {
       {/* Image Container */}
       <div className="relative w-full h-32 sm:h-56 overflow-hidden bg-gray-50 aspect-square sm:aspect-auto">
         {product.fastDelivery && (
-          <span className="absolute top-2 left-2 bg-orange-500 text-white text-[10px] sm:text-[8px] lg:text-[12px] font-bold px-1.5 py-1 sm:px-1 sm:py-0.5 lg:px-2 lg:py-1.5 rounded-full shadow-md z-10">
+          <span className="absolute top-2 left-2 text-white text-[10px] sm:text-[8px] lg:text-[12px] font-bold px-1.5 py-1 sm:px-1 sm:py-0.5 lg:px-2 lg:py-1.5 rounded-full shadow-md z-10" style={{ backgroundColor: '#DC013C' }}>
             Fast Delivery
           </span>
         )}
@@ -124,7 +124,7 @@ const ProductCard = ({ product }) => {
         )}
         
         {discount > 0 && (
-          <span className={`absolute top-2 right-2 ${discount >= 50 ? 'bg-green-500' : 'bg-orange-500'} text-white text-[10px] sm:text-[8px] lg:text-[12px] font-bold px-1.5 py-1 sm:px-1 sm:py-0.5 lg:px-2 lg:py-1.5 rounded-full shadow-md z-10`}>
+          <span className="absolute top-2 right-2 text-white text-[10px] sm:text-[8px] lg:text-[12px] font-bold px-1.5 py-1 sm:px-1 sm:py-0.5 lg:px-2 lg:py-1.5 rounded-full shadow-md z-10" style={{ backgroundColor: '#00BC7D' }}>
             {discount}% OFF
           </span>
         )}

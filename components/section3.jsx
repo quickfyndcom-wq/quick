@@ -111,7 +111,7 @@ let result = allProducts;
                     <p className="text-[11px] sm:text-[13px] md:text-[15px] font-medium mt-2 sm:mt-2.5 line-clamp-2 w-full px-1">
                       {item.name}
                     </p>
-                    <p className="font-bold text-[10px] sm:text-[12px] md:text-[16px] mt-1 sm:mt-1.5 text-orange-600">
+                    <p className="font-bold text-[10px] sm:text-[12px] md:text-[16px] mt-1 sm:mt-1.5 text-[#E6003E]">
                       From ₹{item.price}
                     </p>
                   </a>

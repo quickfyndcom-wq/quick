@@ -136,12 +136,12 @@ const ProductCard = ({ product }) => {
                 {/* Product Image */}
                 <div className={`relative w-full bg-gray-50 overflow-hidden ${getAspectRatioClass(product.aspectRatio)}`}>
                     {hasFastDelivery && (
-                        <span className="absolute top-3 left-3 bg-orange-500 text-white text-xs font-bold px-2.5 py-1 rounded-md shadow-sm z-20 pointer-events-none">
+                        <span className="absolute top-3 left-3 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm z-20 pointer-events-none" style={{ backgroundColor: '#DC013C' }}>
                             Fast
                         </span>
                     )}
                     {discount > 0 && (
-                        <span className={`absolute top-3 right-3 ${discount >= 50 ? 'bg-green-500' : 'bg-orange-500'} text-white text-xs font-bold px-2.5 py-1 rounded-md shadow-sm z-20 pointer-events-none`}>
+                        <span className="absolute top-3 right-3 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm z-20 pointer-events-none" style={{ backgroundColor: '#00BC7D' }}>
                             {discount}% OFF
                         </span>
                     )}

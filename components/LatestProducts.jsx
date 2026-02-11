@@ -165,12 +165,12 @@ const ProductCard = ({ product }) => {
       {/* Image Container */}
       <div className="relative w-full h-36 sm:h-64 overflow-hidden bg-gray-50 aspect-square sm:aspect-auto">
         {hasFastDelivery && (
-          <span className="absolute top-2 left-2 z-20 pointer-events-none inline-flex items-center gap-1 bg-orange-500 text-white text-[10px] sm:text-[8px] lg:text-[12px] font-bold px-2 py-1 sm:px-1.5 sm:py-0.5 lg:px-2.5 lg:py-1.5 rounded-full shadow-md">
+          <span className="absolute top-2 left-2 z-20 pointer-events-none inline-flex items-center gap-1 text-white text-[10px] sm:text-[8px] lg:text-[12px] font-bold px-2 py-1 sm:px-1.5 sm:py-0.5 lg:px-2.5 lg:py-1.5 rounded-full shadow-md" style={{ backgroundColor: '#DC013C' }}>
             Fast Delivery
           </span>
         )}
         {discount > 0 && (
-          <span className={`absolute top-2 right-2 z-20 pointer-events-none inline-flex items-center gap-1 ${discount >= 50 ? 'bg-green-500' : 'bg-orange-500'} text-white text-[10px] sm:text-[8px] lg:text-[12px] font-bold px-2 py-1 sm:px-1.5 sm:py-0.5 lg:px-2.5 lg:py-1.5 rounded-full shadow-md`}>
+          <span className="absolute top-2 right-2 z-20 pointer-events-none inline-flex items-center gap-1 text-white text-[10px] sm:text-[8px] lg:text-[12px] font-bold px-2 py-1 sm:px-1.5 sm:py-0.5 lg:px-2.5 lg:py-1.5 rounded-full shadow-md" style={{ backgroundColor: '#00BC7D' }}>
             {discount}% OFF
           </span>
         )}

@@ -71,7 +71,7 @@ const ProductCard = ({ product }) => {
       {/* Image Container */}
       <div className="relative w-full h-56 overflow-hidden bg-gray-50" style={{ borderRadius: '10px 10px 0 0' }}>
         {product.fastDelivery && (
-          <span className="absolute top-2 left-2 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md z-10">
+          <span className="absolute top-2 left-2 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md z-10" style={{ backgroundColor: '#DC013C' }}>
             Fast Delivery
           </span>
         )}

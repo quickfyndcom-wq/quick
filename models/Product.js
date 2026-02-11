@@ -7,6 +7,7 @@ const ProductSchema = new mongoose.Schema({
   shortDescription: String,
   mrp: Number,
   price: Number,
+  costPrice: { type: Number, default: 0 }, // Actual cost/purchase price for profit calculation
   images: [String],
   category: { type: String, ref: 'Category' },
   categories: { type: [String], default: [] }, // Multiple categories support

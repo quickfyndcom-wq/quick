@@ -10,9 +10,9 @@ import { getAuth } from "firebase/auth";
 import Image from 'next/image';
 import axios from "axios";
 import toast from "react-hot-toast";
-import Logo from "../assets/logo/Asset 11.png";
-import LogoWhite from "../assets/logo/Asset 11.png";
-import LogoMobile from "../assets/logo/Asset 3.png";
+import Logo from "../assets/logo/logo1.png";
+import LogoWhite from "../assets/logo/logo1.png";
+import LogoMobile from "../assets/logo/logo1.png";
 import Truck from '../assets/delivery.png';
 import WalletIcon from '../assets/common/wallet.svg';
 import SignInModal from './SignInModal';
@@ -561,7 +561,7 @@ const Navbar = () => {
             
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-              <Image src={Logo} alt="Qui Logo" width={140} height={40} className="object-contain" priority />
+              <Image src={Logo} alt="Qui Logo" width={198} height={56} className="object-contain" priority />
             </Link>
           </div>
 
@@ -569,8 +569,8 @@ const Navbar = () => {
           <div className="hidden lg:flex items-center flex-1 justify-between gap-3 px-4">
             {/* Left Links */}
             <div className="flex items-center gap-4 flex-shrink-0">
-              <Link href="/5-star-rated" className="text-sm font-medium text-gray-800 hover:text-orange-500 transition whitespace-nowrap flex items-center gap-1.5">
-                <StarIcon size={16} className="text-orange-500" fill="#f97316" />
+              <Link href="/5-star-rated" className="text-sm font-medium text-gray-800 hover:text-gray-600 transition whitespace-nowrap flex items-center gap-1.5">
+                <StarIcon size={16} className="text-[#E6003E]" fill="#E6003E" />
                 5 Star Rated
               </Link>
 
@@ -925,7 +925,7 @@ const Navbar = () => {
                   setSignInMode('login');
                   setSignInOpen(true);
                 }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 transition text-white text-xs font-medium rounded-full flex items-center gap-2"
+                className="px-4 py-2 bg-gradient-to-r from-[#E6003E] to-[#591223] hover:from-[#d10038] hover:to-[#4a0e1c] transition text-white text-xs font-medium rounded-full flex items-center gap-2 shadow-md"
               >
                 <User className="w-5 h-5" />
                 <div className="flex flex-col leading-tight text-left">
@@ -1109,7 +1109,7 @@ const Navbar = () => {
             >
               {/* Header with Logo and Close Button */}
               <div className="flex justify-between items-center border-b border-gray-200 pb-4">
-                <Image src={require('../assets/logo/Asset 12.png')} alt="QuickFynd Logo" width={120} height={35} className="object-contain" />
+                <Image src={Logo} alt="QuickFynd Logo" width={120} height={35} className="object-contain" />
                 <button onClick={() => setMobileMenuOpen(false)} className="p-1 hover:bg-gray-100 rounded-full transition">
                   <X size={24} className="text-gray-600" />
                 </button>
@@ -1119,7 +1119,7 @@ const Navbar = () => {
               {firebaseUser === undefined ? null : !firebaseUser ? (
                 <button
                   type="button"
-                  className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-full transition mb-4 flex items-center justify-center gap-2"
+                  className="w-full px-4 py-3 bg-gradient-to-r from-[#E6003E] to-[#591223] hover:from-[#d10038] hover:to-[#4a0e1c] text-white text-sm font-semibold rounded-full transition mb-4 flex items-center justify-center gap-2 shadow-md"
                   onClick={() => {
                     setSignInOpen(true);
                     setMobileMenuOpen(false);
@@ -1218,7 +1218,7 @@ const Navbar = () => {
                   className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 rounded-lg transition text-gray-700 font-medium"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <StarIcon size={18} className="text-orange-500" fill="#FFA500" />
+                  <StarIcon size={18} className="text-[#E6003E]" fill="#E6003E" />
                   5 Star Rated
                 </Link>
 
