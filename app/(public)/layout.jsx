@@ -16,6 +16,7 @@ function PublicLayoutContent({ children }) {
     const searchParams = useSearchParams();
     const isHomePage = pathname === '/';
     const isCheckout = pathname === '/checkout';
+    const isCartPage = pathname === '/cart';
     const isShopCategoryPage = pathname === '/shop' && Boolean(searchParams.get('category'));
 
     useEffect(() => { 
@@ -29,7 +30,7 @@ function PublicLayoutContent({ children }) {
     }, [dispatch, isShopCategoryPage]);
 
     return (
-        <div className="flex flex-col min-h-screen">
+        <div className={`flex flex-col ${isCartPage ? '' : 'min-h-screen'}`}>
             <GuestOrderLinker />
             <UtmTracker />
             <AdsAttribution />
@@ -42,7 +43,7 @@ function PublicLayoutContent({ children }) {
 
 function PublicLayoutAuthed({ children }) {
     return (
-        <Suspense fallback={<div className="flex flex-col min-h-screen"><GuestOrderLinker /><main className="flex-1 pb-20 lg:pb-0">{children}</main></div>}>
+        <Suspense fallback={<div className="flex flex-col"><GuestOrderLinker /><main className="flex-1 pb-20 lg:pb-0">{children}</main></div>}>
             <PublicLayoutContent>{children}</PublicLayoutContent>
         </Suspense>
     );

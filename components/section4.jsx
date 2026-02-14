@@ -279,7 +279,7 @@ const HorizontalSlider = ({ section, router, allProducts }) => {
                       
                       {/* Fast Delivery Badge */}
                       {isFastDelivery(product) && (
-                        <div className="absolute top-2 left-2 z-20 text-white px-2.5 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: '#DC013C' }}>
+                        <div className="absolute top-2 left-2 z-20 text-white px-2.5 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: '#006644' }}>
                           Fast Delivery
                         </div>
                       )}

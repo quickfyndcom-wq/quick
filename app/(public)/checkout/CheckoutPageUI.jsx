@@ -84,6 +84,18 @@ export default function CheckoutPage() {
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponLoading, setCouponLoading] = useState(false);
   const [storeId, setStoreId] = useState(null);
+
+  const cleanDigits = (value) => (value ? String(value).replace(/\D/g, '') : '');
+  const sanitizePincode = (value) => cleanDigits(value).trim();
+  const isZeroOnlyPincode = (value) => /^0+$/.test(String(value || '').trim());
+  const hasValidPhone = (value) => /^[0-9]{7,15}$/.test(cleanDigits(value));
+  const pickValidPincode = (...values) => {
+    for (const value of values) {
+      const normalized = sanitizePincode(value);
+      if (normalized && !isZeroOnlyPincode(normalized)) return normalized;
+    }
+    return '';
+  };
   
   const handleApplyCoupon = async (e) => {
     e.preventDefault();
@@ -405,14 +417,13 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (user && addressList.length > 0 && !form.addressId) {
       const firstAddr = addressList[0];
-      // Clean phone number: remove all non-digits
-      const cleanPhone = (phone) => phone ? String(phone).replace(/\D/g, '') : '';
       
       setForm((f) => {
         // Try to get phone from: address -> user profile -> keep existing
-        const addressPhone = cleanPhone(firstAddr.phone);
-        const userPhone = cleanPhone(user?.phoneNumber || user?.phone);
+        const addressPhone = cleanDigits(firstAddr.phone);
+        const userPhone = cleanDigits(user?.phoneNumber || user?.phone);
         const finalPhone = addressPhone || userPhone || f.phone || '';
+        const finalPincode = pickValidPincode(firstAddr.zip, firstAddr.pincode, f.pincode);
         
         console.log('Loading address - Phone sources:', {
           addressPhone,
@@ -430,14 +441,14 @@ export default function CheckoutPage() {
           email: firstAddr.email || f.email,
           phone: finalPhone,
           phoneCode: firstAddr.phoneCode || '+91',
-          alternatePhone: cleanPhone(firstAddr.alternatePhone),
+          alternatePhone: cleanDigits(firstAddr.alternatePhone),
           alternatePhoneCode: firstAddr.alternatePhoneCode || '+91',
           street: firstAddr.street || f.street,
           city: firstAddr.city || f.city,
           state: firstAddr.state || f.state,
           district: firstAddr.district || f.district,
           country: firstAddr.country || f.country,
-          pincode: firstAddr.zip || firstAddr.pincode || f.pincode,
+          pincode: finalPincode,
         };
       });
     }
@@ -724,32 +735,23 @@ export default function CheckoutPage() {
     }
 
     // Clean and validate phone number
-    const cleanPhone = (phone) => {
-      if (!phone) return '';
-      // First, remove all non-digit characters
-      let cleaned = String(phone).replace(/\D/g, '');
-      return cleaned;
-    };
-
-    const cleanedPhone = cleanPhone(form.phone);
-    const cleanedAlternatePhone = cleanPhone(form.alternatePhone);
-    const isZeroOnlyPincode = (val) => /^0+$/.test(String(val || '').trim());
-    const sanitizePincode = (val) => String(val || '').replace(/\D/g, '').trim();
+    const cleanedPhone = cleanDigits(form.phone);
+    const cleanedAlternatePhone = cleanDigits(form.alternatePhone);
     let resolvedPincode = sanitizePincode(form.pincode);
 
     // Auto-fill pincode from selected saved address if user entered invalid zero-only pincode
     if (!resolvedPincode || isZeroOnlyPincode(resolvedPincode)) {
       const selectedAddr = (form.addressId && addressList.find(a => a._id === form.addressId)) || null;
-      const fallbackPincode = sanitizePincode(selectedAddr?.zip || selectedAddr?.pincode || '');
+      const fallbackPincode = pickValidPincode(selectedAddr?.zip, selectedAddr?.pincode);
 
-      if (fallbackPincode && !isZeroOnlyPincode(fallbackPincode)) {
+      if (fallbackPincode) {
         resolvedPincode = fallbackPincode;
         setForm((f) => ({ ...f, pincode: fallbackPincode }));
       }
     }
 
     if (!resolvedPincode || isZeroOnlyPincode(resolvedPincode)) {
-      setFormError('Please enter a valid pincode. Values like 0, 00, 000, 0000, 00000, 000000 are not allowed.');
+      setFormError('Please enter a valid pincode.');
       return;
     }
 
@@ -994,9 +996,15 @@ export default function CheckoutPage() {
           const data = JSON.parse(errorText);
           msg = data.message || data.error || errorText;
         } catch {}
+        if (/pincode/i.test(String(msg || ''))) {
+          msg = 'Please enter a valid pincode.';
+        }
         setFormError(msg);
         setPlacingOrder(false);
-        router.push(`/order-failed?reason=${encodeURIComponent(msg)}`);
+        const isInputValidationError = /pincode|phone|shipping address|required|missing/i.test(String(msg || '').toLowerCase());
+        if (!isInputValidationError) {
+          router.push(`/order-failed?reason=${encodeURIComponent(msg)}`);
+        }
         return;
       }
       const data = await res.json();
@@ -1014,6 +1022,17 @@ export default function CheckoutPage() {
         setPlacingOrder(false);
         router.push(`/order-failed?reason=${encodeURIComponent('Order creation failed')}`);
       }
+
+      const selectedAddress = form.addressId ? addressList.find((a) => a._id === form.addressId) : null;
+      const shouldShowPhoneRequired =
+        !!user &&
+        addressList.length > 0 &&
+        !!form.addressId &&
+        !hasValidPhone(form.phone) &&
+        !hasValidPhone(selectedAddress?.phone) &&
+        !hasValidPhone(user?.phoneNumber || user?.phone);
+
+      const isPincodeError = /pincode/i.test(String(formError || ''));
     } catch (err) {
       const errorMsg = err.message || "Order failed. Please try again.";
       setFormError(errorMsg);
@@ -1258,8 +1277,8 @@ export default function CheckoutPage() {
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
                   <div>
-                    <div className="font-semibold">Payment Error</div>
-                    <div className="text-sm mt-1">{formError}</div>
+                    <div className="font-semibold">{isPincodeError ? 'Address Validation' : 'Validation Error'}</div>
+                    <div className="text-sm mt-1">{isPincodeError ? 'Please enter a valid pincode.' : formError}</div>
                   </div>
                 </div>
               )}
@@ -1369,7 +1388,7 @@ export default function CheckoutPage() {
                   </div>
                 
                 {/* Phone Number Section - Show for logged-in users if missing from address */}
-                {user && addressList.length > 0 && (!form.phone || form.phone.length < 7) && (
+                {shouldShowPhoneRequired && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-3">
                     <div className="flex items-start gap-2 mb-3">
                       <svg className="w-5 h-5 text-yellow-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -2024,7 +2043,22 @@ export default function CheckoutPage() {
           if (!show) setEditingAddressId(null);
         }} 
         onAddressAdded={(addr) => {
-          setForm(f => ({ ...f, addressId: addr._id }));
+          setForm((f) => ({
+            ...f,
+            addressId: addr._id,
+            name: addr.name || f.name,
+            email: addr.email || f.email,
+            phone: cleanDigits(addr.phone) || cleanDigits(user?.phoneNumber || user?.phone) || f.phone,
+            phoneCode: addr.phoneCode || '+91',
+            alternatePhone: cleanDigits(addr.alternatePhone),
+            alternatePhoneCode: addr.alternatePhoneCode || '+91',
+            street: addr.street || f.street,
+            city: addr.city || f.city,
+            state: addr.state || f.state,
+            district: addr.district || f.district,
+            country: addr.country || f.country,
+            pincode: pickValidPincode(addr.zip, addr.pincode, f.pincode),
+          }));
           dispatch(fetchAddress({ getToken }));
           setEditingAddressId(null);
         }}
@@ -2040,13 +2074,12 @@ export default function CheckoutPage() {
           // Find the selected address and populate form with its data
           const selectedAddr = addressList.find(a => a._id === addressId);
           if (selectedAddr) {
-            // Clean phone number: remove all non-digits
-            const cleanPhone = (phone) => phone ? String(phone).replace(/\D/g, '') : '';
             setForm(f => {
               // Try to get phone from: address -> user profile -> keep existing
-              const addressPhone = cleanPhone(selectedAddr.phone);
-              const userPhone = cleanPhone(user?.phoneNumber || user?.phone);
+              const addressPhone = cleanDigits(selectedAddr.phone);
+              const userPhone = cleanDigits(user?.phoneNumber || user?.phone);
               const finalPhone = addressPhone || userPhone || f.phone || '';
+              const finalPincode = pickValidPincode(selectedAddr.zip, selectedAddr.pincode, f.pincode);
               
               console.log('Selecting address - Phone sources:', {
                 addressPhone,
@@ -2063,14 +2096,14 @@ export default function CheckoutPage() {
                 email: selectedAddr.email || f.email,
                 phone: finalPhone,
                 phoneCode: selectedAddr.phoneCode || '+91',
-                alternatePhone: cleanPhone(selectedAddr.alternatePhone),
+                alternatePhone: cleanDigits(selectedAddr.alternatePhone),
                 alternatePhoneCode: selectedAddr.alternatePhoneCode || '+91',
                 street: selectedAddr.street || f.street,
                 city: selectedAddr.city || f.city,
                 state: selectedAddr.state || f.state,
                 district: selectedAddr.district || f.district,
                 country: selectedAddr.country || f.country,
-                pincode: selectedAddr.zip || selectedAddr.pincode || f.pincode,
+                pincode: finalPincode,
               };
             });
           } else {
@@ -2199,43 +2232,9 @@ export default function CheckoutPage() {
                       key={cpn._id}
                       className={`border border-dashed rounded-lg p-4 mb-3 transition ${
                         isEligible 
-                          ? 'border-green-200 bg-green-50 hover:border-green-300 cursor-pointer hover:bg-green-100' 
+                          ? 'border-green-200 bg-green-50 hover:border-green-300 hover:bg-green-100' 
                           : 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-75'
                       }`}
-                      onClick={async () => { 
-                        if (isEligible && !couponLoading) {
-                          setCoupon(cpn.code);
-                          setCouponLoading(true);
-                          setCouponError("");
-                          
-                          try {
-                            const res = await fetch('/api/coupons', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                code: cpn.code,
-                                storeId: storeId,
-                                orderTotal: itemsTotal,
-                                userId: user.uid,
-                                cartProductIds: cartItemsArray.map(i => i.productId),
-                              }),
-                            });
-                            
-                            const data = await res.json();
-                            
-                            if (res.ok && data.valid) {
-                              setAppliedCoupon(data.coupon);
-                              setShowCouponModal(false);
-                            } else {
-                              setCouponError(data.error || "Invalid coupon code");
-                            }
-                          } catch (error) {
-                            setCouponError("Failed to apply coupon");
-                          } finally {
-                            setCouponLoading(false);
-                          }
-                        } 
-                      }}
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -2247,9 +2246,31 @@ export default function CheckoutPage() {
                             {!isEligible && <span className="text-xs text-red-600 font-medium">{ineligibleReason}</span>}
                           </div>
                         </div>
-                        {isEligible && <button className="text-green-700 text-xs font-semibold ml-2 whitespace-nowrap">APPLY</button>}
+                        {isEligible ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCoupon(cpn.code);
+                              setCouponError('');
+                            }}
+                            className="ml-2 whitespace-nowrap px-3 py-1.5 rounded-md bg-green-600 hover:bg-green-700 text-white text-xs font-semibold"
+                          >
+                            Use Code
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled
+                            className="ml-2 whitespace-nowrap px-3 py-1.5 rounded-md bg-gray-200 text-gray-500 text-xs font-semibold cursor-not-allowed"
+                          >
+                            Not Eligible
+                          </button>
+                        )}
                       </div>
                       <p className="text-xs text-gray-600">{cpn.description}</p>
+                      {isEligible && (
+                        <p className="text-[11px] text-gray-500 mt-2">Select code, then click Apply above.</p>
+                      )}
                     </div>
                   );
                 })

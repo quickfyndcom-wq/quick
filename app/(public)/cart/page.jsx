@@ -7,25 +7,24 @@ import axios from "axios";
 import Counter from "@/components/Counter";
 import CartSummaryBox from "@/components/CartSummaryBox";
 import ProductCard from "@/components/ProductCard";
-import { deleteItemFromCart } from "@/lib/features/cart/cartSlice";
+import { deleteItemFromCart, fetchCart } from "@/lib/features/cart/cartSlice";
 import { PackageIcon, Trash2Icon } from "lucide-react";
 import Image from "next/image";
 import { calculateShipping, fetchShippingSettings } from "@/lib/shipping";
+import { useAuth } from "@/lib/useAuth";
 
 export const dynamic = "force-dynamic";
 
 export default function Cart() {
     const dispatch = useDispatch();
     const currency = process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || "₹";
-
-    // TODO: integrate Firebase auth token
-    const getToken = async () => null;
-    const isSignedIn = false;
+    const { user, getToken } = useAuth();
+    const isSignedIn = !!user;
 
     const { cartItems } = useSelector((state) => state.cart);
     const products = useSelector((state) => state.product.list);
 
-    const [productsLoaded, setProductsLoaded] = useState(products.length > 0);
+    const [productsLoaded, setProductsLoaded] = useState(false);
     const [cartArray, setCartArray] = useState([]);
     const [totalPrice, setTotalPrice] = useState(0);
     const [recentOrders, setRecentOrders] = useState([]);
@@ -147,6 +146,22 @@ export default function Cart() {
     useEffect(() => {
         fetchRecentOrders();
     }, [isSignedIn]);
+
+    // Keep cart in sync with DB for signed-in users (initial + on focus)
+    useEffect(() => {
+        if (!user) return;
+
+        const syncFromServer = () => {
+            dispatch(fetchCart({ getToken: async () => user.getIdToken() }));
+        };
+
+        syncFromServer();
+        window.addEventListener('focus', syncFromServer);
+
+        return () => {
+            window.removeEventListener('focus', syncFromServer);
+        };
+    }, [user, dispatch]);
 
     if (!productsLoaded) {
         return <div className="text-center py-16 text-gray-400">Loading cart…</div>;
@@ -305,7 +320,7 @@ export default function Cart() {
                         </div>
                     </>
                 ) : (
-                    <div className="flex flex-col justify-center items-center min-h-[60vh]">
+                    <div className="flex flex-col justify-center items-center py-20">
                         <div className="bg-white shadow-lg rounded-lg p-8 text-center max-w-md">
                             <div className="w-14 h-14 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center mx-auto mb-4">
                                 <PackageIcon className="w-8 h-8" />
