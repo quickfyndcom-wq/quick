@@ -86,6 +86,15 @@ export async function POST(request) {
             return null;
         };
 
+        const normalizeZip = (...candidates) => {
+            for (const candidate of candidates) {
+                if (candidate === undefined || candidate === null) continue;
+                const normalized = String(candidate).trim();
+                if (normalized) return normalized;
+            }
+            return '';
+        };
+
         // Validation
         if (isGuest === true) {
             console.log('ORDER API: Validating guest order...');
@@ -99,6 +108,7 @@ export async function POST(request) {
                 if (!guestInfo.city) missingFields.push('city');
                 if (!guestInfo.state) missingFields.push('state');
                 if (!guestInfo.country) missingFields.push('country');
+                if (!normalizeZip(guestInfo.pincode, guestInfo.zip)) missingFields.push('pincode');
             }
             console.log('ORDER API DEBUG: guestInfo received:', guestInfo);
             console.log('ORDER API DEBUG: missingFields:', missingFields);
@@ -128,6 +138,9 @@ export async function POST(request) {
             if (addressData && addressData.street) {
                 const addressDataCheck = validateShippingAddress(addressData, 'addressData');
                 if (addressDataCheck) return addressDataCheck;
+                if (!normalizeZip(addressData.pincode, addressData.zip)) {
+                    return NextResponse.json({ error: 'shipping address required', missingFields: ['pincode'], source: 'addressData' }, { status: 400 });
+                }
             }
         }
 
@@ -315,6 +328,7 @@ export async function POST(request) {
                 
                 // Only create and assign guest address if address fields are present
                 if (guestInfo.address || guestInfo.street) {
+                    const guestZip = normalizeZip(guestInfo.pincode, guestInfo.zip);
                     const guestAddress = await Address.create({
                         userId: 'guest',
                         name: guestInfo.name,
@@ -326,7 +340,7 @@ export async function POST(request) {
                         street: guestInfo.address || guestInfo.street,
                         city: guestInfo.city || 'Guest',
                         state: guestInfo.state || 'Guest',
-                        zip: guestInfo.zip || '000000',
+                        zip: guestZip,
                         country: guestInfo.country || 'UAE'
                     });
                     orderData.addressId = guestAddress._id.toString();
@@ -340,7 +354,7 @@ export async function POST(request) {
                         street: guestInfo.address || guestInfo.street,
                         city: guestInfo.city || 'Guest',
                         state: guestInfo.state || 'Guest',
-                        zip: guestInfo.zip || '000000',
+                        zip: guestZip,
                         country: guestInfo.country || 'UAE',
                         district: guestInfo.district || ''
                     };
@@ -394,6 +408,7 @@ export async function POST(request) {
                     }
                 } else if (addressData && addressData.street) {
                     // User provided address data inline - save it and use it
+                    const inlineZip = normalizeZip(addressData.pincode, addressData.zip);
                     const newAddress = await Address.create({
                         userId: userId,
                         name: addressData.name,
@@ -405,7 +420,7 @@ export async function POST(request) {
                         street: addressData.street,
                         city: addressData.city,
                         state: addressData.state,
-                        zip: addressData.zip,
+                        zip: inlineZip,
                         country: addressData.country,
                         district: addressData.district || ''
                     });
@@ -420,7 +435,7 @@ export async function POST(request) {
                         street: addressData.street,
                         city: addressData.city,
                         state: addressData.state,
-                        zip: addressData.zip,
+                        zip: inlineZip,
                         country: addressData.country,
                         district: addressData.district || ''
                     };

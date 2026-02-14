@@ -81,20 +81,29 @@ function OrderSuccessContent() {
   // Meta Pixel Purchase event with attribution data
   useEffect(() => {
     if (order && typeof window !== 'undefined' && window.fbq) {
+      const orderEventId = String(order?._id || order?.shortOrderNumber || params.get('orderId') || 'unknown');
+      const purchaseEventKey = `meta_purchase_sent_${orderEventId}`;
+
+      // Prevent duplicate browser Purchase events (StrictMode/re-renders/back navigation)
+      if (sessionStorage.getItem(purchaseEventKey)) return;
+
       // Get attribution data if available (from ads)
       const attributionData = window.attributionData || {};
       
       window.fbq('track', 'Purchase', {
         value: total,
         currency: currency,
+        eventID: `purchase_${orderEventId}`,
         // Include attribution parameters for ad tracking
         utm_source: attributionData.utm_source || 'organic',
         utm_medium: attributionData.utm_medium || 'direct',
         utm_campaign: attributionData.utm_campaign || 'none',
         utm_id: attributionData.utm_id || null
       });
+
+      sessionStorage.setItem(purchaseEventKey, '1');
     }
-  }, [order, total, currency]);
+  }, [order, total, currency, params]);
 
   // Render logic moved inside returned JSX to avoid early returns
   return (

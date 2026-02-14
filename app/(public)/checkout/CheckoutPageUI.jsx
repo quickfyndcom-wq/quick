@@ -788,7 +788,7 @@ export default function CheckoutPage() {
             payload.coinsToRedeem = safeRedeemCoins;
           }
         } else {
-          if (!form.name || !form.email || !form.phone || !form.street || !form.city || !form.state || !form.country) {
+          if (!form.name || !form.email || !form.phone || !form.street || !form.city || !form.state || !form.country || !form.pincode) {
             setFormError("Please fill all required shipping details.");
             setPlacingOrder(false);
             return;
@@ -876,7 +876,7 @@ export default function CheckoutPage() {
         // Only add addressId if it exists
         if (addressId || (addressList[0] && addressList[0]._id)) {
           payload.addressId = addressId || addressList[0]._id;
-        } else if (form.street && form.city && form.state && form.country) {
+        } else if (form.street && form.city && form.state && form.country && form.pincode) {
           // User is logged in but has no saved address - include address in payload
           payload.addressData = {
             name: form.name || user.displayName || '',
@@ -888,8 +888,8 @@ export default function CheckoutPage() {
             street: form.street,
             city: form.city,
             state: form.state,
-            country: form.country || 'UAE',
-            zip: form.zip || form.pincode || '000000',
+            country: form.country || 'India',
+            zip: form.pincode || form.zip || '',
             district: form.district || ''
           };
         }

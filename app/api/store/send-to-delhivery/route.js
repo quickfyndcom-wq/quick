@@ -91,7 +91,7 @@ export async function POST(request) {
             address: order.shippingAddress.street || '',
             city: order.shippingAddress.city || '',
             state: order.shippingAddress.state || '',
-            pincode: order.shippingAddress.pincode || '',
+            pincode: order.shippingAddress.pincode || order.shippingAddress.zip || '',
             country: order.shippingAddress.country || 'India',
             order_id: order.shortOrderNumber?.toString() || order._id.toString(),
             weight: order.shipmentWeight || 0.5,

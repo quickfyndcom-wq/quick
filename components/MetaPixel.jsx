@@ -1,10 +1,17 @@
 "use client";
 import { useEffect } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 
 export default function MetaPixel() {
-  const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID || "828400993416271";
+  const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID;
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  if (!pixelId) return null;
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     !(function(f, b, e, v, n, t, s) {
       if (f.fbq) return;
       n = f.fbq = function() {
@@ -22,9 +29,21 @@ export default function MetaPixel() {
       s.parentNode.insertBefore(t, s);
     })(window, document, "script", "https://connect.facebook.net/en_US/fbevents.js");
 
-    window.fbq && window.fbq("init", pixelId);
-    window.fbq && window.fbq("track", "PageView");
+    if (!window.__metaPixelInitialized) {
+      window.fbq && window.fbq("init", pixelId);
+      window.__metaPixelInitialized = true;
+    }
   }, [pixelId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.fbq) return;
+
+    const routeKey = `${pathname || ""}?${searchParams?.toString() || ""}`;
+    if (window.__lastMetaPageView === routeKey) return;
+
+    window.fbq("track", "PageView");
+    window.__lastMetaPageView = routeKey;
+  }, [pathname, searchParams]);
 
     return (
       <>

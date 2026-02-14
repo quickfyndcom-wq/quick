@@ -31,14 +31,22 @@ export default function UtmTracker() {
     // Store in localStorage for entire session
     localStorage.setItem('utm_data', JSON.stringify(utmData));
 
-    // Send to Meta Pixel as custom event for better tracking
+    const pageKey = `${window.location.pathname}${window.location.search}`;
+    const utmEventKey = `meta_utm_sent_${pageKey}`;
+
+    // Prevent duplicate firing from re-renders / StrictMode
+    if (sessionStorage.getItem(utmEventKey)) return;
+
+    // Send UTM attribution as a custom event (avoid duplicate standard PageView)
     if (window.fbq) {
-      window.fbq('track', 'PageView', {
+      window.fbq('trackCustom', 'UTMAttribution', {
         utm_source: utm_source,
         utm_campaign: utm_campaign,
         utm_medium: utm_medium
       });
     }
+
+    sessionStorage.setItem(utmEventKey, '1');
 
     // Send to Google Analytics if available
     if (window.gtag) {
