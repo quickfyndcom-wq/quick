@@ -11,7 +11,7 @@ const WalletTransactionSchema = new mongoose.Schema({
 }, { _id: false });
 
 const WalletSchema = new mongoose.Schema({
-  userId: { type: String, required: true, unique: true, index: true },
+  userId: { type: String, required: true, unique: true },
   coins: { type: Number, default: 0 },
   transactions: { type: [WalletTransactionSchema], default: [] },
   welcomeBonusClaimed: { type: Boolean, default: false }

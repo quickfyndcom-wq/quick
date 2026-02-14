@@ -582,6 +582,10 @@ export default function CheckoutPage() {
         return; // Don't change the payment method yet
       }
       setForm(f => ({ ...f, [name]: value }));
+    } else if (name === 'pincode') {
+      // Keep pincode numeric-only to avoid bad values
+      const numeric = String(value || '').replace(/\D/g, '').slice(0, 10);
+      setForm(f => ({ ...f, pincode: numeric }));
     } else {
       setForm(f => ({ ...f, [name]: value }));
     }
@@ -721,6 +725,30 @@ export default function CheckoutPage() {
 
     const cleanedPhone = cleanPhone(form.phone);
     const cleanedAlternatePhone = cleanPhone(form.alternatePhone);
+    const isZeroOnlyPincode = (val) => /^0+$/.test(String(val || '').trim());
+    const sanitizePincode = (val) => String(val || '').replace(/\D/g, '').trim();
+    let resolvedPincode = sanitizePincode(form.pincode);
+
+    // Auto-fill pincode from selected saved address if user entered invalid zero-only pincode
+    if (!resolvedPincode || isZeroOnlyPincode(resolvedPincode)) {
+      const selectedAddr = (form.addressId && addressList.find(a => a._id === form.addressId)) || null;
+      const fallbackPincode = sanitizePincode(selectedAddr?.zip || selectedAddr?.pincode || '');
+
+      if (fallbackPincode && !isZeroOnlyPincode(fallbackPincode)) {
+        resolvedPincode = fallbackPincode;
+        setForm((f) => ({ ...f, pincode: fallbackPincode }));
+      }
+    }
+
+    if (!resolvedPincode || isZeroOnlyPincode(resolvedPincode)) {
+      setFormError('Please enter a valid pincode. Values like 0, 00, 000, 0000, 00000, 000000 are not allowed.');
+      return;
+    }
+
+    if ((form.country || 'India') === 'India' && resolvedPincode.length !== 6) {
+      setFormError('Please enter a valid 6-digit Indian pincode.');
+      return;
+    }
 
     console.log('Checkout validation - Phone details:', {
       originalPhone: form.phone,
@@ -805,7 +833,7 @@ export default function CheckoutPage() {
             city: form.city,
             state: form.state,
             country: form.country,
-            pincode: form.pincode,
+            pincode: resolvedPincode,
           };
         }
         
@@ -876,7 +904,7 @@ export default function CheckoutPage() {
         // Only add addressId if it exists
         if (addressId || (addressList[0] && addressList[0]._id)) {
           payload.addressId = addressId || addressList[0]._id;
-        } else if (form.street && form.city && form.state && form.country && form.pincode) {
+        } else if (form.street && form.city && form.state && form.country && resolvedPincode) {
           // User is logged in but has no saved address - include address in payload
           payload.addressData = {
             name: form.name || user.displayName || '',
@@ -889,7 +917,7 @@ export default function CheckoutPage() {
             city: form.city,
             state: form.state,
             country: form.country || 'India',
-            zip: form.pincode || form.zip || '',
+            zip: resolvedPincode || form.zip || '',
             district: form.district || ''
           };
         }
@@ -912,7 +940,7 @@ export default function CheckoutPage() {
             city: form.city,
             state: form.state,
             country: form.country,
-            pincode: form.pincode,
+            pincode: resolvedPincode,
           }
         };
         // Add coupon for guest if applied
@@ -1515,11 +1543,15 @@ export default function CheckoutPage() {
                       Auto-fill
                     </button>
                   </div>
-                  {form.pincode && (
+                  {form.pincode && /^0+$/.test(String(form.pincode).trim()) ? (
+                    <div className="text-xs text-red-500 -mt-2">
+                      Please enter a valid pincode. All-zero values are not allowed.
+                    </div>
+                  ) : form.pincode ? (
                     <div className="text-xs text-gray-500 -mt-2">
                       ✓ Address auto-filled from pincode
                     </div>
-                  )}
+                  ) : null}
                   {/* City - Auto-filled from pincode */}
                   <input
                     className="border border-gray-200 bg-white rounded px-4 py-2 focus:border-gray-400"

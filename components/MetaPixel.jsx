@@ -1,11 +1,10 @@
 "use client";
 import { useEffect } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 export default function MetaPixel() {
   const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID;
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   if (!pixelId) return null;
 
@@ -38,12 +37,12 @@ export default function MetaPixel() {
   useEffect(() => {
     if (typeof window === "undefined" || !window.fbq) return;
 
-    const routeKey = `${pathname || ""}?${searchParams?.toString() || ""}`;
+    const routeKey = `${pathname || ""}?${window.location.search || ""}`;
     if (window.__lastMetaPageView === routeKey) return;
 
     window.fbq("track", "PageView");
     window.__lastMetaPageView = routeKey;
-  }, [pathname, searchParams]);
+  }, [pathname]);
 
     return (
       <>

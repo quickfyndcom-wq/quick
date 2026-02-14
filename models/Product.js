@@ -35,7 +35,6 @@ const ProductSchema = new mongoose.Schema({
 // Add indexes for better query performance
 ProductSchema.index({ inStock: 1, createdAt: -1 });
 ProductSchema.index({ storeId: 1, inStock: 1 });
-ProductSchema.index({ slug: 1 });
 ProductSchema.index({ category: 1, inStock: 1 }); // For category filtering
 ProductSchema.index({ price: 1, mrp: 1 }); // For discount calculations and price sorting
 ProductSchema.index({ tags: 1, inStock: 1 }); // For tag-based filtering

@@ -21,8 +21,5 @@ const RecentSearchSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Create index for efficient querying
-RecentSearchSchema.index({ userId: 1 });
-
 export default mongoose.models.RecentSearch ||
   mongoose.model('RecentSearch', RecentSearchSchema);

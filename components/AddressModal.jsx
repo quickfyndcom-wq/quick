@@ -198,11 +198,25 @@ const AddressModal = ({ open, setShowAddressModal, onAddressAdded, initialAddres
                 toast.error('Alternate number must be between 7 and 15 digits');
                 return;
             }
+
+            const normalizedZip = String(address.zip || '').replace(/\s/g, '');
+            if (normalizedZip && /^0+$/.test(normalizedZip)) {
+                toast.error('Please enter a valid pincode. All-zero values are not allowed.');
+                return;
+            }
+
+            if ((address.country || 'India') === 'India') {
+                if (!/^[1-9][0-9]{5}$/.test(normalizedZip)) {
+                    toast.error('Please enter a valid 6-digit Indian pincode.');
+                    return;
+                }
+            }
             
             const token = await getToken()
             
             // Prepare address data with userId from authenticated user
             const addressData = { ...address, userId: user.uid, phone: cleanedPhone };
+            addressData.zip = normalizedZip;
             addressData.alternatePhone = cleanedAlternate || '';
             addressData.alternatePhoneCode = cleanedAlternate ? address.alternatePhoneCode || address.phoneCode : '';
             

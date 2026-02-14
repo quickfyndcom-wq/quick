@@ -34,8 +34,7 @@ const StoreSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-// Create index on username for faster lookups
-StoreSchema.index({ username: 1 });
+// username already has unique index via schema field definition
 StoreSchema.index({ userId: 1 });
 
 export default mongoose.models.Store || mongoose.model("Store", StoreSchema);

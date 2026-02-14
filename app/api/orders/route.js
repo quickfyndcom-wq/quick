@@ -95,6 +95,12 @@ export async function POST(request) {
             return '';
         };
 
+        const isInvalidPincode = (zip) => {
+            const normalized = normalizeZip(zip);
+            if (!normalized) return true;
+            return /^0+$/.test(normalized);
+        };
+
         // Validation
         if (isGuest === true) {
             console.log('ORDER API: Validating guest order...');
@@ -108,7 +114,8 @@ export async function POST(request) {
                 if (!guestInfo.city) missingFields.push('city');
                 if (!guestInfo.state) missingFields.push('state');
                 if (!guestInfo.country) missingFields.push('country');
-                if (!normalizeZip(guestInfo.pincode, guestInfo.zip)) missingFields.push('pincode');
+                const guestZip = normalizeZip(guestInfo.pincode, guestInfo.zip);
+                if (!guestZip || isInvalidPincode(guestZip)) missingFields.push('pincode');
             }
             console.log('ORDER API DEBUG: guestInfo received:', guestInfo);
             console.log('ORDER API DEBUG: missingFields:', missingFields);
@@ -138,7 +145,8 @@ export async function POST(request) {
             if (addressData && addressData.street) {
                 const addressDataCheck = validateShippingAddress(addressData, 'addressData');
                 if (addressDataCheck) return addressDataCheck;
-                if (!normalizeZip(addressData.pincode, addressData.zip)) {
+                const inlineZip = normalizeZip(addressData.pincode, addressData.zip);
+                if (!inlineZip || isInvalidPincode(inlineZip)) {
                     return NextResponse.json({ error: 'shipping address required', missingFields: ['pincode'], source: 'addressData' }, { status: 400 });
                 }
             }
@@ -267,6 +275,10 @@ export async function POST(request) {
                 }
                 const addressCheck = validateShippingAddress(addressExists, 'addressId');
                 if (addressCheck) return addressCheck;
+                const savedZip = normalizeZip(addressExists.pincode, addressExists.zip);
+                if (!savedZip || isInvalidPincode(savedZip)) {
+                    return NextResponse.json({ error: 'invalid pincode in selected address. Please update address.' }, { status: 400 });
+                }
             }
             if (storeId) {
                 const storeExists = await Store.findById(storeId);
