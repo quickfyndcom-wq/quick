@@ -524,8 +524,8 @@ export default function CheckoutPage() {
     if (product && qty > 0) {
       if (isPurchasableProduct(product)) {
         console.log('Found purchasable product for key:', key, product.name);
-        const unitPrice = priceOverride ?? product.price ?? 0;
-        cartArray.push({ ...product, quantity: qty, _cartPrice: unitPrice });
+        const unitPrice = Number(priceOverride ?? product.salePrice ?? product.price ?? 0) || 0;
+        cartArray.push({ ...product, quantity: qty, _cartPrice: unitPrice, _cartKey: key });
       }
     } else {
       console.log('No product found for key:', key);
@@ -537,7 +537,8 @@ export default function CheckoutPage() {
   const subtotal = cartArray.reduce((sum, item) => sum + (item._cartPrice ?? item.price ?? 0) * item.quantity, 0);
   
   // Calculate coupon discount
-  const couponDiscount = appliedCoupon ? Number(appliedCoupon.discountAmount.toFixed(2)) : 0;
+  const couponDiscountRaw = Number(appliedCoupon?.discountAmount || 0);
+  const couponDiscount = Number.isFinite(couponDiscountRaw) ? Number(couponDiscountRaw.toFixed(2)) : 0;
   const totalAfterCoupon = Math.max(0, subtotal - couponDiscount);
   
   const total = totalAfterCoupon + shipping;
@@ -1230,27 +1231,27 @@ export default function CheckoutPage() {
               <h2 className="text-xl font-bold mb-2 text-gray-900">Your order</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {cartArray.map((item) => (
-                  <div key={item._id} className="flex items-center bg-gray-50 border border-gray-200 rounded-lg p-3 gap-3">
+                  <div key={item._cartKey || item._id} className="flex items-center bg-gray-50 border border-gray-200 rounded-lg p-3 gap-3">
                     <img src={item.image || item.images?.[0] || '/placeholder.png'} alt={item.name} className="w-14 h-14 object-cover rounded-md border" />
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-gray-900 truncate">{item.name}</div>
                       <div className="text-xs text-gray-500 truncate">{item.brand || ''}</div>
-                      <div className="text-xs text-gray-400">₹ {item.price.toLocaleString()}</div>
+                      <div className="text-xs text-gray-400">₹ {Number(item._cartPrice ?? item.price ?? 0).toLocaleString()}</div>
                     </div>
                     <div className="flex flex-col items-center gap-1">
                       <div className="flex items-center gap-1">
                         <button type="button" className="px-2 py-0.5 rounded bg-gray-200 text-gray-700 hover:bg-gray-300" onClick={() => {
                           if (item.quantity > 1) {
-                            dispatch({ type: 'cart/removeFromCart', payload: { productId: item._id } });
+                            dispatch({ type: 'cart/removeFromCart', payload: { productId: item._cartKey || item._id } });
                           }
                         }}>-</button>
                         <span className="px-2 text-sm">{item.quantity}</span>
                         <button type="button" className="px-2 py-0.5 rounded bg-gray-200 text-gray-700 hover:bg-gray-300" onClick={() => {
-                          dispatch({ type: 'cart/addToCart', payload: { productId: item._id } });
+                          dispatch({ type: 'cart/addToCart', payload: { productId: item._cartKey || item._id, price: item._cartPrice ?? item.price } });
                         }}>+</button>
                       </div>
                       <button type="button" className="text-xs text-red-500 hover:underline mt-1" onClick={() => {
-                        dispatch({ type: 'cart/deleteItemFromCart', payload: { productId: item._id } });
+                        dispatch({ type: 'cart/deleteItemFromCart', payload: { productId: item._cartKey || item._id } });
                       }}>Remove</button>
                     </div>
                   </div>
