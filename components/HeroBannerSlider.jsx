@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import BannerC from '@/assets/heroslider1/main2.webp';
+import BannerC from '@/assets/heroslider1/slider01.png';
 import WideBanner1 from '@/assets/heroslider1/main3.webp';
 import WideBanner2 from '@/assets/heroslider1/main1.webp';
 import Banner3 from '@/assets/heroslider1/banner05.avif';
@@ -13,7 +13,7 @@ const SLIDE_INTERVAL = 5000;
 const SKELETON_TIMEOUT = 3000; // Increased for mobile - shows skeleton until images load 
 
 const slides = [
-  // { image: BannerC, link: '/offers', bg: '#420608' },
+  { image: BannerC, link: '/offers', bg: '#442163' },
   { image: WideBanner1, link: '/offers', bg: '#0071A4' },
   // { image: Banner3, link: '/offers', bg: '#8a1114' },
   { image: WideBanner2, link: '/offers', bg: '#00D5C3' },
@@ -121,7 +121,7 @@ export default function HeroBannerSlider() {
     <div
       className="hero-banner"
       style={{
-        backgroundColor: slides[index].bg,
+        background: slides[index].bg,
         contain: 'layout style paint',
       }}
     >
@@ -179,10 +179,10 @@ export default function HeroBannerSlider() {
           height: ${HEIGHT}px;
           position: relative;
           overflow: hidden;
-          transition: background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: background 0.6s cubic-bezier(0.4, 0, 0.2, 1);
           display: flex;
           justify-content: center;
-          will-change: background-color;
+          will-change: background;
         }
 
         .hero-banner__viewport {
