@@ -10,7 +10,7 @@ import Banner3 from '@/assets/heroslider1/banner05.avif';
 
 const HEIGHT = 320;
 const SLIDE_INTERVAL = 5000;
-const SKELETON_TIMEOUT = 3000; // Increased for mobile - shows skeleton until images load 
+const SKELETON_TIMEOUT = 1000; // Reduced timeout for faster initial display 
 
 const slides = [
   { image: BannerC, link: '/offers', bg: '#442163' },
@@ -143,11 +143,13 @@ export default function HeroBannerSlider() {
                 height: '100%',
                 cursor: 'pointer',
                 opacity: isActive ? 1 : 0,
-                transform: isActive ? 'translateZ(0) scale(1)' : 'translateZ(0) scale(0.95)',
-                transition: 'opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                transform: isActive ? 'scale(1) translateZ(0)' : 'scale(1.05) translateZ(0)',
+                transition: 'opacity 0.7s ease-in-out, transform 0.7s ease-in-out',
                 pointerEvents: isActive ? 'auto' : 'none',
                 willChange: isActive ? 'opacity, transform' : 'auto',
                 backfaceVisibility: 'hidden',
+                zIndex: isActive ? 2 : 1,
+                background: slide.bg,
               }}
             >
               <Image
@@ -155,10 +157,10 @@ export default function HeroBannerSlider() {
                 alt={`Banner ${i + 1}`}
                 width={1250}
                 height={HEIGHT}
-                priority={i === 0}
-                loading={i === 0 ? 'eager' : 'lazy'}
-                quality={i === 0 ? 85 : 60}
-                placeholder="blur"
+                priority={true}
+                loading="eager"
+                quality={75}
+                placeholder="empty"
                 style={{
                   width: '100%',
                   height: '100%',
@@ -175,14 +177,15 @@ export default function HeroBannerSlider() {
       </div>
       <style jsx>{`
         .hero-banner {
-          width: 100%;
+          width: 100vw;
           height: ${HEIGHT}px;
           position: relative;
           overflow: hidden;
-          transition: background 0.6s cubic-bezier(0.4, 0, 0.2, 1);
           display: flex;
           justify-content: center;
-          will-change: background;
+          align-items: center;
+          margin-left: calc(-50vw + 50%);
+          transition: background 0.7s ease-in-out;
         }
 
         .hero-banner__viewport {

@@ -14,9 +14,10 @@ export async function GET(request) {
         const idToken = authHeader.split('Bearer ')[1];
         // Import admin SDK dynamically to avoid SSR issues
         const { getAuth } = await import('firebase-admin/auth');
-        const { initializeApp, applicationDefault, getApps } = await import('firebase-admin/app');
+        const { initializeApp, cert, getApps } = await import('firebase-admin/app');
         if (getApps().length === 0) {
-            initializeApp({ credential: applicationDefault() });
+            const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '{}');
+            initializeApp({ credential: cert(serviceAccount) });
         }
         let decodedToken;
         try {
@@ -67,9 +68,10 @@ export async function POST(request) {
         }
         const idToken = authHeader.split('Bearer ')[1];
         const { getAuth } = await import('firebase-admin/auth');
-        const { initializeApp, applicationDefault, getApps } = await import('firebase-admin/app');
+        const { initializeApp, cert, getApps } = await import('firebase-admin/app');
         if (getApps().length === 0) {
-            initializeApp({ credential: applicationDefault() });
+            const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '{}');
+            initializeApp({ credential: cert(serviceAccount) });
         }
         let decodedToken;
         try {
