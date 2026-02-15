@@ -1281,7 +1281,6 @@ export default function CheckoutPage() {
             <div className="mb-6">
               <h2 className="text-xl font-bold mb-4 text-gray-900">Delivery Method</h2>
               <div className="space-y-2">
-                {/* Standard Shipping Option */}
                 <label className={`block border rounded-lg p-4 cursor-pointer transition-all ${
                   shippingMethod === 'standard' 
                     ? 'border-green-500 bg-green-50 shadow-sm' 
