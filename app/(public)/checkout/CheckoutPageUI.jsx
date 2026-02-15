@@ -63,6 +63,7 @@ export default function CheckoutPage() {
   const [navigatingToSuccess, setNavigatingToSuccess] = useState(false);
   const [shippingSetting, setShippingSetting] = useState(null);
   const [shipping, setShipping] = useState(0);
+  const [shippingMethod, setShippingMethod] = useState('standard'); // 'standard' or 'express'
   const [showSignIn, setShowSignIn] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [showPincodeModal, setShowPincodeModal] = useState(false);
@@ -571,19 +572,35 @@ export default function CheckoutPage() {
   }, [products]); // Refetch when products load
 
   // Calculate dynamic shipping based on settings
+  // Reset shipping method if express is selected but state is not Kerala
+  useEffect(() => {
+    if (shippingMethod === 'express' && shippingSetting?.enableExpressShipping) {
+      const normalizedState = String(form.state || '').trim().toLowerCase();
+      if (normalizedState !== 'kerala') {
+        setShippingMethod('standard');
+      }
+    }
+  }, [form.state, shippingSetting?.enableExpressShipping]);
+
   useEffect(() => {
     if (shippingSetting && cartArray.length > 0) {
       const calculatedShipping = calculateShipping({ 
         cartItems: cartArray, 
         shippingSetting,
-        paymentMethod: form.payment === 'cod' ? 'COD' : 'CARD'
+        paymentMethod: form.payment === 'cod' ? 'COD' : 'CARD',
+        shippingState: form.state
       });
-      setShipping(calculatedShipping);
-      console.log('Calculated shipping:', calculatedShipping, 'Settings:', shippingSetting, 'Payment:', form.payment);
+      let finalShipping = calculatedShipping;
+      // Add express fee if express shipping is selected
+      if (shippingMethod === 'express' && shippingSetting?.enableExpressShipping) {
+        finalShipping += Number(shippingSetting.expressShippingFee || 0);
+      }
+      setShipping(finalShipping);
+      console.log('Calculated shipping:', finalShipping, 'Base:', calculatedShipping, 'Method:', shippingMethod, 'Settings:', shippingSetting, 'Payment:', form.payment);
     } else {
       setShipping(0);
     }
-  }, [shippingSetting, cartArray, form.payment]);
+  }, [shippingSetting, cartArray, form.payment, form.state, shippingMethod]);
 
   // Redirect to shop when cart is empty (must be a top-level hook)
   useEffect(() => {
@@ -815,6 +832,7 @@ export default function CheckoutPage() {
           items: itemsFromStateCard,
           paymentMethod: 'CARD',
           shippingFee: shipping,
+          shippingMethod: shippingMethod,
           paymentStatus: 'pending',
         };
         
@@ -910,6 +928,7 @@ export default function CheckoutPage() {
           items: itemsFromState,
           paymentMethod: form.payment === 'cod' ? 'COD' : form.payment.toUpperCase(),
           shippingFee: shipping,
+          shippingMethod: shippingMethod,
         };
         if (safeRedeemCoins > 0) {
           payload.coinsToRedeem = safeRedeemCoins;
@@ -950,6 +969,7 @@ export default function CheckoutPage() {
           items: itemsFromState,
           paymentMethod: form.payment === 'cod' ? 'COD' : form.payment.toUpperCase(),
           shippingFee: shipping,
+          shippingMethod: shippingMethod,
           isGuest: true,
           guestInfo: {
             name: form.name,
@@ -1220,7 +1240,7 @@ export default function CheckoutPage() {
   return (
     <>
       <FbqInitiateCheckout />
-      <div className="py-10 bg-white md:pb-0 pb-32">
+      <div className="py-10 bg-white md:pb-0 pb-32 min-h-[35dvh]">
       <div className="max-w-[1250px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Left column: address, form, payment */}
         <div className="md:col-span-2">
@@ -1259,15 +1279,105 @@ export default function CheckoutPage() {
             </div>
             {/* Shipping Method Section */}
             <div className="mb-6">
-              <h2 className="text-lg font-semibold mb-2 text-gray-900">Choose Shipping Method</h2>
-              {/* Only one shipping method for now, auto-selected */}
-              <div className="border border-green-400 bg-green-50 rounded-lg p-4 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-green-900">{shipping === 0 ? 'Free Shipping' : 'Standard Shipping'}</div>
-                  <div className="text-xs text-gray-600">Delivered within {shippingSetting?.estimatedDays || '2-5'} business days</div>
-                </div>
-                <div className="font-bold text-green-900 text-lg">{shipping === 0 ? 'Free' : `₹ ${shipping.toLocaleString()}`}</div>
+              <h2 className="text-xl font-bold mb-4 text-gray-900">Delivery Method</h2>
+              <div className="space-y-2">
+                {/* Standard Shipping Option */}
+                <label className={`block border rounded-lg p-4 cursor-pointer transition-all ${
+                  shippingMethod === 'standard' 
+                    ? 'border-green-500 bg-green-50 shadow-sm' 
+                    : 'border-gray-200 bg-white'
+                }`}>
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="radio"
+                      name="shippingMethod"
+                      value="standard"
+                      checked={shippingMethod === 'standard'}
+                      onChange={(e) => setShippingMethod(e.target.value)}
+                      className="mt-1 w-5 h-5 cursor-pointer flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">📦</span>
+                        <div>
+                          <div className="font-medium text-sm text-gray-900">Standard delivery mode</div>
+                          <div className="text-xs text-gray-600">{shippingSetting?.estimatedDays || '2-5'} </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="font-bold text-lg text-green-600">
+                        {(() => {
+                          const baseShip = calculateShipping({ 
+                            cartItems: cartArray, 
+                            shippingSetting,
+                            paymentMethod: form.payment === 'cod' ? 'COD' : 'CARD',
+                            shippingState: form.state
+                          });
+                          return baseShip === 0 ? 'Free' : `₹${baseShip}`;
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                </label>
+
+                {/* Express Shipping Option - Only show if enabled */}
+                {shippingSetting?.enableExpressShipping && String(form.state || '').trim().toLowerCase() === 'kerala' && (
+                  <label className={`block border rounded-lg p-4 cursor-pointer transition-all ${
+                    shippingMethod === 'express' 
+                      ? 'border-blue-500 bg-blue-50 shadow-sm' 
+                      : 'border-gray-200 bg-white'
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="radio"
+                        name="shippingMethod"
+                        value="express"
+                        checked={shippingMethod === 'express'}
+                        onChange={(e) => setShippingMethod(e.target.value)}
+                        className="mt-1 w-5 h-5 cursor-pointer flex-shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-base">⚡</span>
+                          <div>
+                            <div className="font-medium text-sm text-gray-900">Express delivery mode</div>
+                            <div className="text-xs text-gray-600">{shippingSetting?.expressEstimatedDays || '1-2'} days</div>
+                          </div>
+                        </div>
+                        <div className="text-xs text-blue-600 ml-7">+₹{shippingSetting?.expressShippingFee || 0} extra</div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <div className="font-bold text-lg text-blue-600">
+                          ₹
+                          {(() => {
+                            const baseShip = calculateShipping({ 
+                              cartItems: cartArray, 
+                              shippingSetting,
+                              paymentMethod: form.payment === 'cod' ? 'COD' : 'CARD',
+                              shippingState: form.state
+                            });
+                            const expressTotal = baseShip + Number(shippingSetting.expressShippingFee || 0);
+                            return expressTotal;
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+                )}
               </div>
+              
+              {/* State-wise charge note */}
+              {form.state && shippingSetting?.stateCharges && Array.isArray(shippingSetting.stateCharges) && (() => {
+                const stateCharge = shippingSetting.stateCharges.find(
+                  (entry) => String(entry?.state || '').trim().toLowerCase() === String(form.state || '').trim().toLowerCase()
+                );
+                return stateCharge ? (
+                  <div className="text-xs text-slate-600 mt-2">
+                    ℹ️ <span className="font-medium">Shipping charge for {form.state}:</span> ₹{stateCharge.fee} (varies by state)
+                  </div>
+                ) : null;
+              })()}
             </div>
             {/* Shipping Details Section */}
             <form id="checkout-form" onSubmit={handleSubmit} className="flex flex-col gap-0">

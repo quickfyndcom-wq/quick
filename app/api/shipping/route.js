@@ -47,7 +47,8 @@ export async function GET(request) {
         maxCODAmount: 0,
         enableExpressShipping: false,
         expressShippingFee: 0,
-        expressEstimatedDays: "1-2"
+        expressEstimatedDays: "1-2",
+        stateCharges: []
       }
     }, {
       headers: {
@@ -122,7 +123,15 @@ export async function PUT(request) {
       // Express
       enableExpressShipping: Boolean(body.enableExpressShipping ?? false),
       expressShippingFee: Number(body.expressShippingFee ?? 20),
-      expressEstimatedDays: body.expressEstimatedDays || "1-2"
+      expressEstimatedDays: body.expressEstimatedDays || "1-2",
+      stateCharges: Array.isArray(body.stateCharges)
+        ? body.stateCharges
+            .map((entry) => ({
+              state: String(entry?.state || '').trim(),
+              fee: Number(entry?.fee || 0)
+            }))
+            .filter((entry) => entry.state)
+        : []
     };
     
     console.log('Data to save - maxCODAmount:', data.maxCODAmount, 'codFee:', data.codFee);

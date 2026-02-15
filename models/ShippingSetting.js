@@ -21,6 +21,12 @@ const ShippingSettingSchema = new mongoose.Schema({
   enableExpressShipping: { type: Boolean, default: false },
   expressShippingFee: { type: Number, default: 20 },
   expressEstimatedDays: { type: String, default: "1-2" },
+  stateCharges: [
+    {
+      state: { type: String, trim: true },
+      fee: { type: Number, default: 0 }
+    }
+  ]
 }, { timestamps: true });
 
 export default mongoose.models.ShippingSetting || mongoose.model("ShippingSetting", ShippingSettingSchema);

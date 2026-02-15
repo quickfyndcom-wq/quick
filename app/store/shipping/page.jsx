@@ -7,11 +7,13 @@ import axios from 'axios'
 import toast from 'react-hot-toast'
 import { SaveIcon, TruckIcon, PackageIcon, WeightIcon, DollarSignIcon } from 'lucide-react'
 import { useAuth } from '@/lib/useAuth'
+import { indiaStatesAndDistricts } from '@/assets/indiaStatesAndDistricts'
 
 
 export default function StoreShippingSettings() {
   const { getToken } = useAuth()
   const currency = process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || '₹'
+  const stateOptions = indiaStatesAndDistricts.map((entry) => entry.state)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
@@ -27,6 +29,7 @@ export default function StoreShippingSettings() {
     freeShippingMin: 499,
     localDeliveryFee: '',
     regionalDeliveryFee: '',
+    stateCharges: [],
     estimatedDays: '3-5',
     enableCOD: true,
     codFee: 0,
@@ -57,6 +60,12 @@ export default function StoreShippingSettings() {
             freeShippingMin: Number(data.setting.freeShippingMin || 499),
             localDeliveryFee: data.setting.localDeliveryFee ? Number(data.setting.localDeliveryFee) : '',
             regionalDeliveryFee: data.setting.regionalDeliveryFee ? Number(data.setting.regionalDeliveryFee) : '',
+            stateCharges: Array.isArray(data.setting.stateCharges)
+              ? data.setting.stateCharges.map((entry) => ({
+                  state: String(entry?.state || '').trim(),
+                  fee: Number(entry?.fee || 0)
+                })).filter((entry) => entry.state)
+              : [],
             estimatedDays: data.setting.estimatedDays || '3-5',
             enableCOD: Boolean(data.setting.enableCOD),
             codFee: Number(data.setting.codFee || 0),
@@ -275,6 +284,79 @@ export default function StoreShippingSettings() {
                   </div>
                   <p className='text-xs text-slate-500 mt-1'>Special fee for regional deliveries</p>
                 </div>
+              </div>
+            </div>
+
+            {/* State-wise Delivery Charges */}
+            <div className='bg-white p-6 rounded-xl border border-slate-200'>
+              <h2 className='text-xl font-semibold text-slate-800 mb-4'>State-wise Delivery Charges (Optional)</h2>
+              <div className='space-y-3'>
+                {form.stateCharges.length === 0 && (
+                  <p className='text-sm text-slate-500'>No state-based charges added yet.</p>
+                )}
+                {form.stateCharges.map((entry, index) => (
+                  <div key={`${entry.state}-${index}`} className='grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3 items-center'>
+                    <select
+                      value={entry.state}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setForm((s) => {
+                          const next = [...s.stateCharges];
+                          next[index] = { ...next[index], state: value };
+                          return { ...s, stateCharges: next };
+                        });
+                      }}
+                      className='border border-slate-300 rounded px-3 py-2'
+                    >
+                      <option value=''>Select State</option>
+                      {stateOptions.map((state) => (
+                        <option key={state} value={state}>{state}</option>
+                      ))}
+                    </select>
+                    <div className='flex items-center gap-2'>
+                      <span className='text-slate-600'>{currency}</span>
+                      <input
+                        type='number'
+                        step='0.01'
+                        value={entry.fee}
+                        onChange={(e) => {
+                          const value = Number(e.target.value);
+                          setForm((s) => {
+                            const next = [...s.stateCharges];
+                            next[index] = { ...next[index], fee: Number.isFinite(value) ? value : 0 };
+                            return { ...s, stateCharges: next };
+                          });
+                        }}
+                        className='w-36 border border-slate-300 rounded px-3 py-2'
+                      />
+                    </div>
+                    <button
+                      type='button'
+                      onClick={() => {
+                        setForm((s) => ({
+                          ...s,
+                          stateCharges: s.stateCharges.filter((_, i) => i !== index)
+                        }));
+                      }}
+                      className='text-sm text-red-600 hover:text-red-700'
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type='button'
+                  onClick={() => {
+                    setForm((s) => ({
+                      ...s,
+                      stateCharges: [...s.stateCharges, { state: '', fee: 0 }]
+                    }));
+                  }}
+                  className='text-sm text-blue-600 hover:text-blue-700 font-medium'
+                >
+                  + Add State Charge
+                </button>
+                <p className='text-xs text-slate-500'>If a state has a fee, it overrides the base shipping fee (free shipping rules still apply).</p>
               </div>
             </div>
 
